@@ -70,6 +70,7 @@ $RECYCLE.BIN/
 *.sql
 *.sqlite
 *.sqlite3
+data/*
 
 
 ############################
@@ -129,3 +130,12 @@ dist
 build
 .strapi-updater.json
 .strapi-cloud.json
+
+############################
+# executable builds
+############################
+
+node-executables
+bundled
+exec
+*.blob

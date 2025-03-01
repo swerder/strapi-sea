@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 export default ({ env }) => {
   const client = env('DATABASE_CLIENT', 'sqlite');
@@ -44,7 +44,7 @@ export default ({ env }) => {
     },
     sqlite: {
       connection: {
-        filename: path.join(__dirname, '..', '..', env('DATABASE_FILENAME', '.tmp/data.db')),
+        filename: path.join(process.cwd(), env('DATABASE_FILENAME', 'data/data.db')),
       },
       useNullAsDefault: true,
     },

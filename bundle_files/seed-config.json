@@ -1,0 +1,67 @@
+{
+    "adminUser": {
+        "firstname":"Super",
+        "lastname":"Admin",
+        "email": "info@example.com",
+        "password":"Supersecret123"
+    },
+    "seedData": [
+        {
+            "type": "api::test.test",
+            "uniqueField": "name",
+            "data":{
+                "name": "Test"
+            }
+        },
+        {
+            "type": "api::test.test",
+            "uniqueField": "documentId",
+            "data":{
+                "documentId": "b0go12fvfib5q4efhkfj2d49",
+                "name": "Test2"
+            }
+        },
+        {
+            "type": "plugin::users-permissions.user",
+            "uniqueField": "username",
+            "data": {
+                "username": "testUser",
+                "email": "test@example.com",
+                "provider": "local",
+                "password": "Supersecret123",
+                "resetPasswordToken": null,
+                "confirmationToken": null,
+                "confirmed": false,
+                "blocked": false
+            }
+        }
+    ],
+    "seedLinks": [
+        {
+            "left": {
+                "type": "api::test.test",
+                "field": "name",
+                "value": "Test"
+            },
+            "right":{
+                "type": "plugin::users-permissions.user",
+                "field": "username",
+                "value": "testUser"
+            },
+            "field": "user"
+        },
+        {
+            "left": {
+                "type": "api::test.test",
+                "field": "documentId",
+                "value": "b0go12fvfib5q4efhkfj2d49"
+            },
+            "right":{
+                "type": "plugin::users-permissions.user",
+                "field": "username",
+                "value": "testUser"
+            },
+            "field": "user"
+        }
+    ]
+}
