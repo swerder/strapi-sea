@@ -1,0 +1,107 @@
+name: prepare release text and and diff patch
+
+on:
+  #release:
+  #  types: [draft]
+  workflow_dispatch: 
+
+jobs:
+  update_release_notes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract changelog and combine with header
+      id: extract_changelog
+      run: |
+        VERSION="${{ github.event.release.tag_name || github.ref_name }}"
+        VERSION_WITHOUT_V="${VERSION#v}"
+        HEADER_CONTENT=$(cat RELEASE_HEAD.md)
+        HEADER_CONTENT="${HEADER_CONTENT//<RELEASE>/$VERSION_WITHOUT_V}"
+        CHANGELOG_CONTENT=$(awk -v version="$VERSION_WITHOUT_V" '/^## /{if(found){exit}if($2==version){found=1;next}}found{print}' CHANGELOG.md)
+        COMBINED_CONTENT="$HEADER_CONTENT
+
+        $CHANGELOG_CONTENT"
+        echo "$COMBINED_CONTENT" > combined_release_notes.md
+
+    - name: Update release
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const fs = require('fs');
+          const releases = await github.rest.repos.listReleases({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          let draftRelease = releases.data.find(release => release.draft && release.tag_name === '${{ github.ref }}');
+          if (!draftRelease) {
+            console.log('draft release for tag not found, find "untagged-" ohne')
+            draftRelease = releases.data.find(release => release.draft && release.tag_name.startsWith('untagged-'));
+          }
+
+          const combinedContent = fs.readFileSync('combined_release_notes.md', 'utf8');
+          const newBody = combinedContent + "\n\n" + (draftRelease.body || '');
+          
+          await github.rest.repos.updateRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            release_id: draftRelease.id,
+            tag_name: draftRelease.tag_name,
+            body: newBody
+          });
+
+  create-diff-patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Create diff patch
+        run: |
+          git diff origin/create-strapi-app...${{ github.ref }} \
+          ':!.github/workflows/release.yml' \
+          ':!CHANGELOG.md' \
+          ':!LICENSE' \
+          ':!README.md' \
+          ':!RELEASE_HEAD.md' \
+          ':!package.json' \
+          ':!package-lock.json' > strapi-sea-${{ github.ref_name }}.patch
+          git show origin/create-strapi-app:package.json | jq '{scripts, dependencies, devDependencies}' > original_filtered.json
+          git show ${{ github.ref }}:package.json | jq '{config, scripts, dependencies, devDependencies}' > current_filtered.json
+          diff -u original_filtered.json current_filtered.json > package_filtered.patch || true
+          cat package_filtered.patch | sed 's/original_filtered.json/a\/package.json/' | sed 's/current_filtered.json/b\/package.json/' >> strapi-sea-${{ github.ref_name }}.patch
+          rm original_filtered.json current_filtered.json package_filtered.patch
+
+      - name: Upload diff patch to release
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const fs = require('fs');
+            const patchContent = fs.readFileSync('strapi-sea-${{ github.ref_name }}.patch', 'utf8');
+
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            let draftRelease = releases.data.find(release => release.draft && release.tag_name === '${{ github.ref }}');
+            if (!draftRelease) {
+              console.log('draft release for tag not found, find "untagged-" ohne')
+              draftRelease = releases.data.find(release => release.draft && release.tag_name.startsWith('untagged-'));
+            }
+
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: draftRelease.id,
+              name: 'strapi-sea-${{ github.ref_name }}.patch',
+              data: patchContent
+            });

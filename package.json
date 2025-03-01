@@ -1,36 +1,59 @@
 {
   "name": "strapi-sea",
-  "version": "0.1.0",
+  "version": "5.8.1",
   "private": true,
-  "description": "A Strapi application",
+  "description": "A Strapi application that can be packed as SEA",
+  "license": "MIT",
+  "author": {
+    "name": "swerder"
+  },
+  "config": {
+    "executableName": "strapi-app"
+  },
   "scripts": {
     "build": "strapi build",
     "deploy": "strapi deploy",
     "develop": "strapi develop",
     "start": "strapi start",
-    "strapi": "strapi"
+    "strapi": "strapi",
+    "export:user-role": "config-sync export --yes --type user-role",
+    "prebuild:webpack": "npm run prepare-bundle",
+    "build:webpack": "npx webpack --config bundle_files/webpack.config.js",
+    "prebuild:sea": "npm run prepare-bundle exec",
+    "build:sea": "node --experimental-sea-config bundle_files/sea-config.json && npm run inject-sea",
+    "postbuild:sea": "npm run zip-release",
+    "build:all": "npm run build && npm run build:webpack && npm run build:sea",
+    "start:webpack": "cd bundled/ && ./startWebpack.sh",
+    "start:sea": "cd exec/ && ./startServer.sh",
+    "setup:sea": "cd exec/ && ./startServer.sh --setup",
+    "prepare-bundle": "tsx scripts/prepare-bundle-files.ts",
+    "inject-sea": "tsx scripts/inject-sea.ts",
+    "zip-release": "tsx scripts/zip-release.ts",
+    "postinstall": "npx patch-package"
   },
   "dependencies": {
-    "@strapi/plugin-cloud": "5.8.1",
     "@strapi/plugin-users-permissions": "5.8.1",
     "@strapi/strapi": "5.8.1",
-    "better-sqlite3": "11.3.0",
+    "better-sqlite3": "11.8.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
+    "strapi-plugin-config-sync": "^3.1.1",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5"
+    "node-loader": "^2.1.0",
+    "null-loader": "^4.0.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
   },
   "engines": {
     "node": ">=18.0.0 <=22.x.x",
     "npm": ">=6.0.0"
-  },
-  "strapi": {
-    "uuid": "4084ae70-c55a-4abb-9d21-f4531698953b"
   }
 }
