@@ -72,6 +72,7 @@ jobs:
           ':!LICENSE' \
           ':!README.md' \
           ':!RELEASE_HEAD.md' \
+          ':!scripts/update-patches.sh' \
           ':!package.json' \
           ':!package-lock.json' > strapi-sea-${{ github.ref_name }}.patch
           git show origin/create-strapi-app:package.json | jq '{scripts, dependencies, devDependencies}' > original_filtered.json
