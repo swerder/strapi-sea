@@ -624,6 +624,29 @@ index 97cde39..21faa38 100644
  }
  const formatContentTypes = (pluginName, contentTypes) => {
    Object.values(contentTypes).forEach((definition) => {
+diff --git a/node_modules/@strapi/core/dist/middlewares/favicon.js b/node_modules/@strapi/core/dist/middlewares/favicon.js
+index 41829b1..e3d9459 100644
+--- a/node_modules/@strapi/core/dist/middlewares/favicon.js
++++ b/node_modules/@strapi/core/dist/middlewares/favicon.js
+@@ -13,8 +13,16 @@ const favicon = (config, { strapi }) => {
+   const { maxAge, path: faviconDefaultPath } = { ...defaults, ...config };
+   const { root: appRoot } = strapi.dirs.app;
+   let faviconPath = faviconDefaultPath;
+-  if (!fs.existsSync(path.resolve(appRoot, faviconPath))) {
+-    faviconPath = "favicon.ico";
++  if (typeof __webpack_require__ === "function") {
++    const req = require.context("favicon", false, /favicon\.(ico|png)$/);
++    process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'favicon'", req.id, req.keys());
++    if (!req.keys().includes(`./${path.basename(faviconPath)}`)){
++      faviconPath = "favicon.ico";
++    }
++  } else {
++    if (!fs.existsSync(path.resolve(appRoot, faviconPath))) {
++      faviconPath = "favicon.ico";
++    }
+   }
+   return koaFavicon__default.default(path.resolve(appRoot, faviconPath), { maxAge });
+ };
 diff --git a/node_modules/@strapi/core/dist/services/content-api/permissions/engine.js b/node_modules/@strapi/core/dist/services/content-api/permissions/engine.js
 index bb9e68d..b6afe53 100644
 --- a/node_modules/@strapi/core/dist/services/content-api/permissions/engine.js

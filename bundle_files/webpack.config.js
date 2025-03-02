@@ -101,7 +101,7 @@ module.exports = {
     new webpack.ContextReplacementPlugin(/^sqlite3_node_dir$/, path.resolve(referencePath, 'node_modules/better-sqlite3/build/Release')),
     new webpack.ContextReplacementPlugin(/^config\/sync$/, path.resolve(referencePath, 'config/sync')),
     new webpack.ContextReplacementPlugin(/^admin_web$/, path.resolve(referencePath, 'dist/build')),
-    new webpack.ContextReplacementPlugin(/^favicon.ico$/, referencePath),
+    new webpack.ContextReplacementPlugin(/^favicon$/, referencePath),
   ],
   optimization: {
     minimize: false,
@@ -116,7 +116,7 @@ module.exports = {
         type: 'asset/source',
       },
       {
-        test: /favicon\.ico$/,
+        test: /favicon\.(ico|png)$/,
         type: 'asset/inline',
       },
       {
