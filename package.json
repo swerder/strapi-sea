@@ -32,8 +32,8 @@
     "postinstall": "npx patch-package"
   },
   "dependencies": {
-    "@strapi/plugin-users-permissions": "5.9.0",
-    "@strapi/strapi": "5.9.0",
+    "@strapi/plugin-users-permissions": "5.10.4",
+    "@strapi/strapi": "5.10.4",
     "better-sqlite3": "11.8.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
