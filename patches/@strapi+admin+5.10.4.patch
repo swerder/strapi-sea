@@ -1,0 +1,118 @@
+diff --git a/node_modules/@strapi/admin/dist/server/index.js b/node_modules/@strapi/admin/dist/server/index.js
+index c194cc6..d68379b 100644
+--- a/node_modules/@strapi/admin/dist/server/index.js
++++ b/node_modules/@strapi/admin/dist/server/index.js
+@@ -431,45 +431,77 @@ var bootstrap$1 = (async ({ strapi: strapi1 })=>{
+ });
+ 
+ const registerAdminPanelRoute = ({ strapi })=>{
+-    let buildDir = path.resolve(strapi.dirs.dist.root, 'build');
+-    if (!fse.pathExistsSync(buildDir)) {
+-        buildDir = path.resolve(__dirname, '../../build');
+-    }
+-    const serveAdminMiddleware = async (ctx, next)=>{
+-        await next();
+-        if (ctx.method !== 'HEAD' && ctx.method !== 'GET') {
+-            return;
+-        }
+-        if (ctx.body != null || ctx.status !== 404) {
+-            return;
+-        }
+-        ctx.type = 'html';
+-        ctx.body = fse.createReadStream(path.join(buildDir, 'index.html'));
+-    };
+-    strapi.server.routes([
+-        {
+-            method: 'GET',
+-            path: `${strapi.config.admin.path}/:path*`,
+-            handler: [
+-                serveAdminMiddleware,
+-                serveStatic(buildDir, {
+-                    maxage: 31536000,
+-                    defer: false,
+-                    index: 'index.html',
+-                    setHeaders (res, path$1) {
+-                        const ext = path.extname(path$1);
+-                        // publicly cache static files to avoid unnecessary network & disk access
+-                        if (ext !== '.html') {
+-                            res.setHeader('cache-control', 'public, max-age=31536000, immutable');
+-                        }
++    if (typeof __webpack_require__ === 'function') {
++        const req = require.context('admin_web', true, /\.(html|css|js)$/);
++        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'admin_web'", req.id, req.keys());
++        strapi.server.routes([
++            {
++                method: 'GET',
++                path: `${strapi.config.admin.path}/:path*`,
++                handler: [
++                async (ctx, next) => {
++                    await next();
++                        if (ctx.method !== 'HEAD' && ctx.method !== 'GET') {
++                        return;
+                     }
+-                })
+-            ],
+-            config: {
+-                auth: false
++                    if (ctx.body != null || ctx.status !== 404) {
++                        return;
++                    }
++                    const fileName = `./${path.basename(ctx.path)}`;
++                    if (req.keys().includes(fileName)) {
++                        ctx.body = req(fileName);
++                        ctx.type = fileName.split('.').pop();
++                        ctx.res.setHeader('cache-control', 'public, max-age=31536000, immutable');
++                    } else {
++                        ctx.body = req('./index.html');
++                        ctx.type = 'html';
++                    }
++                }
++                ],
++                config: { auth: false }
+             }
++        ]);
++    } else {
++        let buildDir = path.resolve(strapi.dirs.dist.root, 'build');
++        if (!fse.pathExistsSync(buildDir)) {
++            buildDir = path.resolve(__dirname, '../../build');
+         }
+-    ]);
++        const serveAdminMiddleware = async (ctx, next)=>{
++            await next();
++            if (ctx.method !== 'HEAD' && ctx.method !== 'GET') {
++                return;
++            }
++            if (ctx.body != null || ctx.status !== 404) {
++                return;
++            }
++            ctx.type = 'html';
++            ctx.body = fse.createReadStream(path.join(buildDir, 'index.html'));
++        };
++        strapi.server.routes([
++            {
++                method: 'GET',
++                path: `${strapi.config.admin.path}/:path*`,
++                handler: [
++                    serveAdminMiddleware,
++                    serveStatic(buildDir, {
++                        maxage: 31536000,
++                        defer: false,
++                        index: 'index.html',
++                        setHeaders (res, path$1) {
++                            const ext = path.extname(path$1);
++                            // publicly cache static files to avoid unnecessary network & disk access
++                            if (ext !== '.html') {
++                                res.setHeader('cache-control', 'public, max-age=31536000, immutable');
++                            }
++                        }
++                    })
++                ],
++                config: {
++                    auth: false
++                }
++            }
++        ]);
++    }
+ };
+ // serveStatic is not supposed to be used to serve a folder that have sub-folders
+ const serveStatic = (filesDir, koaStaticOptions = {})=>{

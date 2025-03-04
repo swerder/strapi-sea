@@ -22,10 +22,6 @@ module.exports = {
     path: path.resolve(referencePath, 'bundled'),
     libraryTarget: 'commonjs2',
   },
-  infrastructureLogging: {
-    level: 'info',
-    debug: /NormalModuleReplacementPlugin/
-  },
   mode: 'production', //process.env.NODE_ENV, //'development', or 'production'
   target: 'node',
   externals: [

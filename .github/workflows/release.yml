@@ -72,6 +72,7 @@ jobs:
           ':!LICENSE' \
           ':!README.md' \
           ':!RELEASE_HEAD.md' \
+          ':!scripts/try-apply-patches.sh' \
           ':!scripts/update-patches.sh' \
           ':!package.json' \
           ':!package-lock.json' > strapi-sea-${{ github.ref_name }}.patch

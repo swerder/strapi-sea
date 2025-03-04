@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.10.4
+
+- add script to partly apply patches and prepare compare directory
+- update node module patch files for Strapi 5.10.4
+- override koa + vite version for fix vulnerabilities
+
 ## 5.9.0
 
 - add script to regenerate patches
