@@ -1,5 +1,5 @@
 diff --git a/node_modules/@strapi/admin/dist/server/index.js b/node_modules/@strapi/admin/dist/server/index.js
-index c194cc6..d68379b 100644
+index e44603f..6643292 100644
 --- a/node_modules/@strapi/admin/dist/server/index.js
 +++ b/node_modules/@strapi/admin/dist/server/index.js
 @@ -431,45 +431,77 @@ var bootstrap$1 = (async ({ strapi: strapi1 })=>{

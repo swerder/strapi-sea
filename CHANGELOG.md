@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.11.0
+
+- update node module patch files for Strapi 5.11.0
+- remove override koa version
+
 ## 5.10.4
 
 - add script to partly apply patches and prepare compare directory
