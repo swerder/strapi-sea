@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.11.1
+
+- update node module patch files for Strapi 5.11.1
+- remove override vite version
+
 ## 5.11.0
 
 - update node module patch files for Strapi 5.11.0
