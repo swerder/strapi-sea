@@ -16,8 +16,5 @@ export default ({ env }) => ({
     startup: {
       enabled: !isSea, // disable start message
     },
-    updates: {
-      enabled: !isSea, // disables update notifications
-    },
   },
 });

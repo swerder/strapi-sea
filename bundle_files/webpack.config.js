@@ -8,7 +8,7 @@ const referencePath = process.cwd();
 const distSrcDir = 'dist/src';
 //make sure dirs exist
 //require.context from webpack will throw an error if folder does not exist
-for (const dirName of ['middlewares', 'api', 'components', 'extensions', '../../config/sync']) {
+for (const dirName of ['middlewares', 'api', 'components', 'extensions','migrations', '../../config/sync']) {
   const dir = path.resolve(referencePath, distSrcDir, dirName);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
@@ -70,6 +70,7 @@ module.exports = {
     new webpack.ContextReplacementPlugin(/^api$/, path.resolve(referencePath, distSrcDir, 'api')),
     new webpack.ContextReplacementPlugin(/^components$/, path.resolve(referencePath, distSrcDir, 'components')),
     new webpack.ContextReplacementPlugin(/^extensions$/, path.resolve(referencePath, distSrcDir, 'extensions')),
+    new webpack.ContextReplacementPlugin(/^migrations$/, path.resolve(referencePath, distSrcDir, 'migrations')),
     new webpack.ContextReplacementPlugin(/^@strapi$/, path.resolve(referencePath, 'node_modules/@strapi')),
     new webpack.ContextReplacementPlugin(/^node_modules$/, path.resolve(referencePath, 'node_modules')),
     new webpack.ContextReplacementPlugin(/^node_modules_strapi_plugin_package$/, (context) => {

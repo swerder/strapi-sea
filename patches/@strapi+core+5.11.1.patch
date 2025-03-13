@@ -1,8 +1,8 @@
 diff --git a/node_modules/@strapi/core/dist/index.js b/node_modules/@strapi/core/dist/index.js
-index 8a27a56..d961385 100644
+index eda2ae2..ce18d71 100644
 --- a/node_modules/@strapi/core/dist/index.js
 +++ b/node_modules/@strapi/core/dist/index.js
-@@ -1,7 +1,10 @@
+@@ -1,12 +1,24 @@
  'use strict';
  
  var globalAgent = require('global-agent');
@@ -14,7 +14,34 @@ index 8a27a56..d961385 100644
  var _ = require('lodash');
  var fp = require('lodash/fp');
  var logger$1 = require('@strapi/logger');
-@@ -134,8 +137,47 @@ const getAbsoluteUrl = (adminOrServer)=>(config, forAdminBuild = false)=>{
+ var database = require('@strapi/database');
+-var tsUtils = require('@strapi/typescript-utils');
++var tsUtils;
++if (typeof __webpack_require__ === 'function') {
++    tsUtils = {
++        resolveOutDirSync: (filePath) => filePath,
++        isUsingTypeScript: async (filePath) => false,
++        isUsingTypeScriptSync: (filePath) => false,
++    };
++} else {
++    tsUtils = require('@strapi/typescript-utils');
++}
+ var os = require('os');
+ var dotenv = require('dotenv');
+ var strapiUtils = require('@strapi/utils');
+@@ -14,7 +26,10 @@ var fs = require('fs');
+ var async_hooks = require('async_hooks');
+ var open = require('open');
+ var crypto = require('crypto');
+-var packageJson = require('package-json');
++var packageJson;
++if (typeof __webpack_require__ !== 'function') {
++    packageJson = require('package-json');
++}
+ var Configstore = require('configstore');
+ var semver = require('semver');
+ var boxen = require('boxen');
+@@ -134,8 +149,47 @@ const getAbsoluteUrl = (adminOrServer)=>(config, forAdminBuild = false)=>{
      };
  const getAbsoluteAdminUrl = getAbsoluteUrl('admin');
  const getAbsoluteServerUrl = getAbsoluteUrl('server');
@@ -64,7 +91,7 @@ index 8a27a56..d961385 100644
      try {
          const jsModule = strapiUtils.importDefault(file);
          // call if function
-@@ -152,7 +194,7 @@ const loadJsFile = (file)=>{
+@@ -152,7 +206,7 @@ const loadJsFile = (file)=>{
          throw new Error('Unknown error');
      }
  };
@@ -73,7 +100,7 @@ index 8a27a56..d961385 100644
      try {
          return JSON.parse(fs.readFileSync(file).toString());
      } catch (error) {
-@@ -162,7 +204,7 @@ const loadJSONFile = (file)=>{
+@@ -162,7 +216,7 @@ const loadJSONFile = (file)=>{
          throw new Error('Unknown error');
      }
  };
@@ -82,7 +109,7 @@ index 8a27a56..d961385 100644
      const ext = path.extname(file);
      switch(ext){
          case '.js':
-@@ -173,6 +215,7 @@ const loadConfigFile = (file)=>{
+@@ -173,6 +227,7 @@ const loadConfigFile = (file)=>{
              return {};
      }
  };
@@ -90,7 +117,7 @@ index 8a27a56..d961385 100644
  
  const VALID_EXTENSIONS = [
      '.js',
-@@ -225,6 +268,20 @@ const logWarning = (message)=>{
+@@ -225,6 +280,20 @@ const logWarning = (message)=>{
      console.warn(message);
  };
  var loadConfigDir = ((dir)=>{
@@ -111,7 +138,7 @@ index 8a27a56..d961385 100644
      if (!fs.existsSync(dir)) return {};
      const allFiles = fs.readdirSync(dir, {
          withFileTypes: true
-@@ -471,7 +528,13 @@ var pkg = {
+@@ -471,7 +540,13 @@ var pkg = {
  dotenv.config({
      path: process.env.ENV_PATH
  });
@@ -126,7 +153,7 @@ index 8a27a56..d961385 100644
  const defaultConfig$2 = {
      server: {
          host: process.env.HOST || os.hostname() || 'localhost',
-@@ -509,7 +572,14 @@ const defaultConfig$2 = {
+@@ -509,7 +584,14 @@ const defaultConfig$2 = {
  };
  const loadConfiguration = (opts)=>{
      const { appDir, distDir, autoReload = false, serveAdminPanel = true } = opts;
@@ -142,7 +169,7 @@ index 8a27a56..d961385 100644
      const configDir = path.resolve(distDir || process.cwd(), 'config');
      const rootConfig = {
          launchedAt: Date.now(),
-@@ -525,10 +595,13 @@ const loadConfiguration = (opts)=>{
+@@ -525,10 +607,13 @@ const loadConfiguration = (opts)=>{
              serveAdminPanel
          }
      };
@@ -156,7 +183,7 @@ index 8a27a56..d961385 100644
      const config = _.merge(rootConfig, defaultConfig$2, baseConfig, envConfig);
      const { serverUrl, adminUrl } = getConfigUrls(config);
      const serverAbsoluteUrl = getAbsoluteServerUrl(config);
-@@ -541,6 +614,7 @@ const loadConfiguration = (opts)=>{
+@@ -541,6 +626,7 @@ const loadConfiguration = (opts)=>{
      _.set(config, 'admin.path', adminPath);
      _.set(config, 'admin.absoluteUrl', adminAbsoluteUrl);
      _.set(config, 'dirs', getDirs(opts, config));
@@ -164,7 +191,7 @@ index 8a27a56..d961385 100644
      return config;
  };
  
-@@ -1204,7 +1278,14 @@ const DEFAULT_FEATURES = {
+@@ -1204,7 +1290,14 @@ const DEFAULT_FEATURES = {
          }
      ]
  };
@@ -180,7 +207,23 @@ index 8a27a56..d961385 100644
  class LicenseCheckError extends Error {
      constructor(message, shouldFallback = false){
          super(message);
-@@ -2407,20 +2488,31 @@ const dummyMiddleware = (_, next)=>next();
+@@ -1541,6 +1634,7 @@ Check out the new releases at: ${releaseLink}
+ `.trim();
+ };
+ const createUpdateNotifier = (strapi)=>{
++  if (typeof __webpack_require__ !== 'function') {
+     let config;
+     try {
+         config = new Configstore(pkg.name, {}, {
+@@ -1587,6 +1681,7 @@ const createUpdateNotifier = (strapi)=>{
+     }
+     display(NOTIF_INTERVAL);
+     checkUpdate(CHECK_INTERVAL); // doesn't need to await
++  }
+ };
+ 
+ // TODO: once core Node exposes a stable way to create a ProxyAgent we will use that instead of undici
+@@ -2407,20 +2502,31 @@ const dummyMiddleware = (_, next)=>next();
  /**
   * Resolve middleware from package name or path
   */ const resolveCustomMiddleware = (resolve, strapi)=>{
@@ -225,7 +268,7 @@ index 8a27a56..d961385 100644
      }
  };
  
-@@ -4375,24 +4467,62 @@ const normalizeName = (name)=>strapiUtils.strings.isKebabCase(name) ? name : _.k
+@@ -4375,24 +4481,62 @@ const normalizeName = (name)=>strapiUtils.strings.isKebabCase(name) ? name : _.k
  const isDirectory = (fd)=>fd.isDirectory();
  const isDotFile = (fd)=>fd.name.startsWith('.');
  async function loadAPIs(strapi) {
@@ -300,7 +343,7 @@ index 8a27a56..d961385 100644
  }
  const validateContentTypesUnicity = (apis)=>{
      const allApisSchemas = Object.values(apis).flatMap((api)=>Object.values(api.contentTypes));
-@@ -4414,16 +4544,16 @@ const validateContentTypesUnicity = (apis)=>{
+@@ -4414,16 +4558,16 @@ const validateContentTypesUnicity = (apis)=>{
          }
      });
  };
@@ -326,7 +369,7 @@ index 8a27a56..d961385 100644
      ])).map((result)=>result?.result);
      return {
          ...index || {},
-@@ -4436,27 +4566,40 @@ const loadAPI = async (apiName, dir)=>{
+@@ -4436,27 +4580,40 @@ const loadAPI = async (apiName, dir)=>{
          contentTypes: contentTypes || {}
      };
  };
@@ -383,7 +426,7 @@ index 8a27a56..d961385 100644
          if (fp.isEmpty(loadedContentType) || fp.isEmpty(loadedContentType.schema)) {
              throw new Error(`Could not load content type found at ${dir}`);
          }
-@@ -4476,34 +4619,52 @@ const loadContentTypes = async (apiName, dir)=>{
+@@ -4476,34 +4633,52 @@ const loadContentTypes = async (apiName, dir)=>{
      };
  };
  // because this is async and its contents are dynamic, we must return it within an object to avoid a property called `then` being interpreted as a Promise
@@ -449,7 +492,7 @@ index 8a27a56..d961385 100644
              return {
                  result: await fse.readJSON(file)
              };
-@@ -4618,8 +4779,17 @@ const favicon = (config, { strapi })=>{
+@@ -4618,8 +4793,17 @@ const favicon = (config, { strapi })=>{
     *
     *  This check ensures backwards compatibility until
     *  the next major version
@@ -469,7 +512,7 @@ index 8a27a56..d961385 100644
      }
      return koaFavicon(path.resolve(appRoot, faviconPath), {
          maxAge
-@@ -4956,22 +5126,33 @@ async function loadMiddlewares(strapi) {
+@@ -4956,22 +5140,33 @@ async function loadMiddlewares(strapi) {
      strapi.get('middlewares').add(`strapi::`, middlewares);
  }
  const loadLocalMiddlewares = async (strapi)=>{
@@ -515,7 +558,7 @@ index 8a27a56..d961385 100644
      return middlewares;
  };
  
-@@ -4997,21 +5178,25 @@ const removeRelativePrefix = (filePath)=>{
+@@ -4997,21 +5192,25 @@ const removeRelativePrefix = (filePath)=>{
   * Returns an Object build from a list of files matching a glob pattern in a directory
   * It builds a tree structure resembling the folder structure in dir
   */ const loadFiles = async (dir, pattern, // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -546,7 +589,7 @@ index 8a27a56..d961385 100644
          }
          Object.defineProperty(mod, '__filename__', {
              enumerable: true,
-@@ -5027,16 +5212,29 @@ const removeRelativePrefix = (filePath)=>{
+@@ -5027,16 +5226,29 @@ const removeRelativePrefix = (filePath)=>{
  };
  
  async function loadComponents(strapi) {
@@ -580,7 +623,7 @@ index 8a27a56..d961385 100644
                  return strapi.stopWithError(`Component ${key} is missing a "collectionName" property.\nVerify file ${filePath}.`);
              }
              const uid = `${category}.${key}`;
-@@ -5052,6 +5250,7 @@ async function loadComponents(strapi) {
+@@ -5052,6 +5264,7 @@ async function loadComponents(strapi) {
          return acc;
      }, {});
      strapi.get('components').add(components);
@@ -588,7 +631,7 @@ index 8a27a56..d961385 100644
  }
  
  // TODO:: allow folders with index.js inside for bigger policies
-@@ -5080,6 +5279,13 @@ async function loadPolicies(strapi) {
+@@ -5080,6 +5293,13 @@ async function loadPolicies(strapi) {
   * first load config from `config/plugins.js`
   * and then merge config from `config/env/{env}/plugins.js`
   */ const getUserPluginsConfig = async ()=>{
@@ -602,7 +645,7 @@ index 8a27a56..d961385 100644
      const globalUserConfigPath = path.join(strapi.dirs.dist.config, 'plugins.js');
      const currentEnvUserConfigPath = path.join(strapi.dirs.dist.config, 'env', process.env.NODE_ENV, 'plugins.js');
      let config = {};
-@@ -5091,6 +5297,7 @@ async function loadPolicies(strapi) {
+@@ -5091,6 +5311,7 @@ async function loadPolicies(strapi) {
      if (await fse.pathExists(currentEnvUserConfigPath)) {
          config = fp.merge(config, loadConfigFile(currentEnvUserConfigPath));
      }
@@ -610,7 +653,7 @@ index 8a27a56..d961385 100644
      return config;
  };
  
-@@ -5129,6 +5336,8 @@ const toDetailedDeclaration = (declaration)=>{
+@@ -5129,6 +5350,8 @@ const toDetailedDeclaration = (declaration)=>{
              /**
         * we only want the node_module here, not the package.json
         */ pathToPlugin = path.join(declaration.resolve, '..');
@@ -619,7 +662,7 @@ index 8a27a56..d961385 100644
          } else {
              try {
                  pathToPlugin = path.dirname(require.resolve(declaration.resolve));
-@@ -5147,16 +5356,31 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -5147,16 +5370,31 @@ const getEnabledPlugins = async (strapi1, { client } = {
      client: false
  })=>{
      const internalPlugins = {};
@@ -654,7 +697,7 @@ index 8a27a56..d961385 100644
          validatePluginName(packageInfo.strapi.name);
          internalPlugins[packageInfo.strapi.name] = {
              ...toDetailedDeclaration({
-@@ -5174,7 +5398,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -5174,7 +5412,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
          const packagePath = path.join(dep, 'package.json');
          let packageInfo;
          try {
@@ -663,7 +706,7 @@ index 8a27a56..d961385 100644
          } catch  {
              continue;
          }
-@@ -5194,6 +5418,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -5194,6 +5432,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
              };
          }
      }
@@ -671,7 +714,7 @@ index 8a27a56..d961385 100644
      const declaredPlugins = {};
      const userPluginsConfig = await getUserPluginsConfig();
      _.forEach(userPluginsConfig, (declaration, pluginName)=>{
-@@ -5206,7 +5431,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -5206,7 +5445,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
          // for manually resolved plugins
          if (pathToPlugin) {
              const packagePath = path.join(pathToPlugin, 'package.json');
@@ -680,7 +723,7 @@ index 8a27a56..d961385 100644
              if (isStrapiPlugin(packageInfo)) {
                  declaredPlugins[pluginName].info = packageInfo.strapi || {};
                  declaredPlugins[pluginName].packageInfo = packageInfo;
-@@ -5216,6 +5441,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -5216,6 +5455,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
      const declaredPluginsResolves = fp.map(fp.prop('pathToPlugin'), declaredPlugins);
      const installedPluginsNotAlreadyUsed = fp.pickBy((p)=>!declaredPluginsResolves.includes(p.pathToPlugin), installedPlugins);
      const enabledPlugins = fp.pipe(fp.defaultsDeep(declaredPlugins), fp.defaultsDeep(installedPluginsNotAlreadyUsed), fp.pickBy((p)=>p.enabled))(internalPlugins);
@@ -688,7 +731,7 @@ index 8a27a56..d961385 100644
      return enabledPlugins;
  };
  
-@@ -5235,12 +5461,23 @@ const defaultPlugin = {
+@@ -5235,12 +5475,23 @@ const defaultPlugin = {
      contentTypes: {}
  };
  const applyUserExtension = async (plugins)=>{
@@ -717,7 +760,7 @@ index 8a27a56..d961385 100644
      for (const pluginName of Object.keys(plugins)){
          const plugin = plugins[pluginName];
          // first: load json schema
-@@ -5292,6 +5529,11 @@ async function loadPlugins(strapi1) {
+@@ -5292,6 +5543,11 @@ async function loadPlugins(strapi1) {
      const plugins = {};
      const enabledPlugins = await getEnabledPlugins(strapi1);
      strapi1.config.set('enabledPlugins', enabledPlugins);
@@ -729,7 +772,7 @@ index 8a27a56..d961385 100644
      for (const pluginName of Object.keys(enabledPlugins)){
          const enabledPlugin = enabledPlugins[pluginName];
          let serverEntrypointPath;
-@@ -5308,11 +5550,21 @@ async function loadPlugins(strapi1) {
+@@ -5308,11 +5564,21 @@ async function loadPlugins(strapi1) {
          } catch (e) {
              throw new Error(`Error loading the plugin ${pluginName} because ${pluginName} is not installed. Please either install the plugin or remove it's configuration.`);
          }
@@ -755,7 +798,7 @@ index 8a27a56..d961385 100644
          plugins[pluginName] = {
              ...defaultPlugin,
              ...pluginServer,
-@@ -5327,6 +5579,7 @@ async function loadPlugins(strapi1) {
+@@ -5327,6 +5593,7 @@ async function loadPlugins(strapi1) {
      for (const pluginName of Object.keys(plugins)){
          strapi1.get('plugins').add(pluginName, plugins[pluginName]);
      }

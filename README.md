@@ -116,6 +116,7 @@ startServer.cmd
     current_branch=$(git rev-parse --abbrev-ref HEAD)
     git checkout main
     git merge $current_branch
+    git push
     ```
     </details>
 
@@ -151,7 +152,17 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🐛 Known issues
 
-The webpack build still show different warnings because off dynamic loading of modules.
-As I want to add as less module patches as possible here I only addressed the ones that lead to problems on my side.
-If thw warnings lead to problems on your side you can address them similar to the way I do it on the strapi modules (see patches).
+For unused node_modules that pop up as missing errors in webpack build, I add them as "externals" in webpack config.
 
+In the most cases I fix webpack warnings by implement a specific logic to load the required files.
+
+In "umzug" I prevent to pack the cli part and disable the "glob" logic to define migration files.
+
+In "knex" I disable the dynamic loading AbstractMigrationsLoader.getFile() and FsSeeds.getSeed() functions.
+
+In "@strapi/core" and "@strapi/admin" I prevent "@strapi/typescript-utils" from being loaded and mock the functions.
+
+The webpack build may still show different warnings in your codebase because off dynamic loading of modules.
+Webpack load all libraries that are referenced in the code, also if they are not realy used.
+If the warnings lead to problems on your side you can address them similar to the way I do it on the strapi modules (see patches).
+Or prevent them to be loaded at all(see patches e.g umzug/knex).

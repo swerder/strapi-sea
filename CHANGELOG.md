@@ -4,6 +4,9 @@
 
 - update node module patch files for Strapi 5.11.1
 - remove override vite version
+- implement webpack logic for migrations
+- fix / exclude some webpack dynamic import problems
+- comment out strapi update check in webpack context
 
 ## 5.11.0
 

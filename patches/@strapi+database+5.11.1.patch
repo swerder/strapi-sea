@@ -1,0 +1,78 @@
+diff --git a/node_modules/@strapi/database/dist/index.js b/node_modules/@strapi/database/dist/index.js
+index 3a01ae6..e0a2b3e 100644
+--- a/node_modules/@strapi/database/dist/index.js
++++ b/node_modules/@strapi/database/dist/index.js
+@@ -7652,7 +7652,7 @@ const transformLogMessage = (level, message)=>{
+ };
+ 
+ // TODO: check multiple commands in one sql statement
+-const migrationResolver = ({ name, path, context })=>{
++const migrationResolver = ({ name, path, context, req })=>{
+     const { db } = context;
+     if (!path) {
+         throw new Error(`Migration ${name} has no path`);
+@@ -7670,7 +7670,7 @@ const migrationResolver = ({ name, path, context })=>{
+     }
+     // NOTE: we can add some ts register if we want to handle ts migration files at some point
+     // eslint-disable-next-line @typescript-eslint/no-var-requires
+-    const migration = require(path);
++    const migration = (typeof __webpack_require__ === 'function') ? req(path) : require(path);
+     return {
+         name,
+         up: wrapTransaction(db)(migration.up),
+@@ -7678,8 +7678,15 @@ const migrationResolver = ({ name, path, context })=>{
+     };
+ };
+ const createUserMigrationProvider = (db)=>{
+-    const dir = db.config.settings.migrations.dir;
+-    fse.ensureDirSync(dir);
++    let req;
++    let dir;
++    if (typeof __webpack_require__ === 'function') {
++        req = require.context('migrations', false, /\.(js|sql)$/);
++        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'migrations'", req.id, req.keys());
++    } else {
++        dir = db.config.settings.migrations.dir;
++        fse.ensureDirSync(dir);
++    }
+     const context = {
+         db
+     };
+@@ -7704,15 +7711,28 @@ const createUserMigrationProvider = (db)=>{
+             }
+         },
+         context,
+-        migrations: {
+-            glob: [
+-                '*.{js,sql}',
+-                {
+-                    cwd: dir
+-                }
+-            ],
+-            resolve: migrationResolver
+-        }
++        migrations:
++        (typeof __webpack_require__ === "function")
++            ? () =>
++                req
++                .keys()
++                .map((filePath) =>
++                    migrationResolver({
++                        name: path$1.basename(filePath, path$1.extname(filePath)),
++                        path: filePath,
++                        context,
++                        req,
++                    })
++                )
++            : {
++                glob: [
++                    "*.{js,sql}",
++                    {
++                        cwd: dir,
++                    },
++                ],
++                resolve: migrationResolver,
++            },
+     });
+     return {
+         async shouldRun () {

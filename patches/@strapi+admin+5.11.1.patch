@@ -1,8 +1,24 @@
 diff --git a/node_modules/@strapi/admin/dist/server/index.js b/node_modules/@strapi/admin/dist/server/index.js
-index e44603f..6643292 100644
+index e44603f..ef77a06 100644
 --- a/node_modules/@strapi/admin/dist/server/index.js
 +++ b/node_modules/@strapi/admin/dist/server/index.js
-@@ -431,45 +431,77 @@ var bootstrap$1 = (async ({ strapi: strapi1 })=>{
+@@ -19,7 +19,14 @@ var permissions$1 = require('@strapi/permissions');
+ var pmap = require('p-map');
+ var assert = require('assert');
+ var fs = require('fs');
+-var tsUtils = require('@strapi/typescript-utils');
++var tsUtils;
++if (typeof __webpack_require__ === 'function') {
++    tsUtils = {
++        isUsingTypeScript: async (filePath) => false,
++    };
++} else {
++    tsUtils = require('@strapi/typescript-utils');
++}
+ var zod = require('zod');
+ var compose = require('koa-compose');
+ var dataTransfer$1 = require('@strapi/data-transfer');
+@@ -431,45 +438,77 @@ var bootstrap$1 = (async ({ strapi: strapi1 })=>{
  });
  
  const registerAdminPanelRoute = ({ strapi })=>{
