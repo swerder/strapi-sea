@@ -82,11 +82,12 @@ The program have the following possible params:
 --help     : show this informations
 no params  : start the application.
   `);
+  process.exit(0);
 }
 
 async function main() {
   const strapi = await createStrapi().load();
-  if (process.argv.includes("--help")) {
+  if (process.argv.includes("--help") || process.argv.includes("-h")) {
     help(strapi);
   } else if (process.argv.includes("--setup")) {
     await setup(strapi);

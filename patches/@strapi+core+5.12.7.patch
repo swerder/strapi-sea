@@ -1,123 +1,8 @@
-diff --git a/node_modules/@strapi/core/dist/index.js b/node_modules/@strapi/core/dist/index.js
-index eda2ae2..ce18d71 100644
---- a/node_modules/@strapi/core/dist/index.js
-+++ b/node_modules/@strapi/core/dist/index.js
-@@ -1,12 +1,24 @@
- 'use strict';
- 
- var globalAgent = require('global-agent');
--var path = require('path');
-+let path = require('path');
-+if (typeof __webpack_require__ === 'function') {
-+  path = path.posix;
-+}
- var _ = require('lodash');
- var fp = require('lodash/fp');
- var logger$1 = require('@strapi/logger');
- var database = require('@strapi/database');
--var tsUtils = require('@strapi/typescript-utils');
-+var tsUtils;
-+if (typeof __webpack_require__ === 'function') {
-+    tsUtils = {
-+        resolveOutDirSync: (filePath) => filePath,
-+        isUsingTypeScript: async (filePath) => false,
-+        isUsingTypeScriptSync: (filePath) => false,
-+    };
-+} else {
-+    tsUtils = require('@strapi/typescript-utils');
-+}
- var os = require('os');
- var dotenv = require('dotenv');
- var strapiUtils = require('@strapi/utils');
-@@ -14,7 +26,10 @@ var fs = require('fs');
- var async_hooks = require('async_hooks');
- var open = require('open');
- var crypto = require('crypto');
--var packageJson = require('package-json');
-+var packageJson;
-+if (typeof __webpack_require__ !== 'function') {
-+    packageJson = require('package-json');
-+}
- var Configstore = require('configstore');
- var semver = require('semver');
- var boxen = require('boxen');
-@@ -134,8 +149,47 @@ const getAbsoluteUrl = (adminOrServer)=>(config, forAdminBuild = false)=>{
-     };
- const getAbsoluteAdminUrl = getAbsoluteUrl('admin');
- const getAbsoluteServerUrl = getAbsoluteUrl('server');
--
--const loadJsFile = (file)=>{
-+let loadJsFile;
-+let loadJSONFile;
-+let loadConfigFile;
-+if (typeof __webpack_require__ === 'function') {
-+    loadJsFile = (file, req) => {
-+        try {
-+            const jsModule = strapiUtils.importDefault(file, req);
-+            if (typeof jsModule === 'function') {
-+                return jsModule({ env: strapiUtils.env });
-+            }
-+            return jsModule;
-+        } catch (error) {
-+            if (error instanceof Error) {
-+                throw new Error(`Could not load js config file ${file} in webpack context with id ${req.id}. export DEBUG_PRINT_WEBPACK_CONTEXT=1 for debuging: ${error.message}`);
-+            }
-+            throw new Error('Unknown error');
-+        }
-+    };
-+    loadJSONFile = (file, req) => {
-+        try {
-+            return req(file);
-+        } catch (error) {
-+            if (error instanceof Error) {
-+                throw new Error(`Could not load json config file ${file} in webpack context with id ${req.id}. export DEBUG_PRINT_WEBPACK_CONTEXT=1 for debuging: ${error.message}`);
-+            }
-+            throw new Error('Unknown error');
-+        }
-+    };
-+    loadConfigFile = (file, req) => {
-+        const ext = path.extname(file);
-+        switch (ext) {
-+            case '.js':
-+                return loadJsFile(file, req);
-+            case '.json':
-+                return loadJSONFile(file, req);
-+            default:
-+                return {};
-+        }
-+    };
-+} else {
-+loadJsFile = (file)=>{
-     try {
-         const jsModule = strapiUtils.importDefault(file);
-         // call if function
-@@ -152,7 +206,7 @@ const loadJsFile = (file)=>{
-         throw new Error('Unknown error');
-     }
- };
--const loadJSONFile = (file)=>{
-+loadJSONFile = (file)=>{
-     try {
-         return JSON.parse(fs.readFileSync(file).toString());
-     } catch (error) {
-@@ -162,7 +216,7 @@ const loadJSONFile = (file)=>{
-         throw new Error('Unknown error');
-     }
- };
--const loadConfigFile = (file)=>{
-+loadConfigFile = (file)=>{
-     const ext = path.extname(file);
-     switch(ext){
-         case '.js':
-@@ -173,6 +227,7 @@ const loadConfigFile = (file)=>{
-             return {};
-     }
- };
-+}
- 
- const VALID_EXTENSIONS = [
-     '.js',
-@@ -225,6 +280,20 @@ const logWarning = (message)=>{
+diff --git a/node_modules/@strapi/core/dist/configuration/config-loader.js b/node_modules/@strapi/core/dist/configuration/config-loader.js
+index d386250..27209ba 100644
+--- a/node_modules/@strapi/core/dist/configuration/config-loader.js
++++ b/node_modules/@strapi/core/dist/configuration/config-loader.js
+@@ -55,6 +55,20 @@ const logWarning = (message)=>{
      console.warn(message);
  };
  var loadConfigDir = ((dir)=>{
@@ -129,7 +14,7 @@ index eda2ae2..ce18d71 100644
 +        return configFiles.reduce(
 +            (acc, file) => {
 +                const key = path.basename(file, path.extname(file));
-+                acc[key] = loadConfigFile(file, req);
++                acc[key] = loadConfigFile.loadConfigFile(file, req);
 +                return acc;
 +            },
 +            {}
@@ -138,7 +23,11 @@ index eda2ae2..ce18d71 100644
      if (!fs.existsSync(dir)) return {};
      const allFiles = fs.readdirSync(dir, {
          withFileTypes: true
-@@ -471,7 +540,13 @@ var pkg = {
+diff --git a/node_modules/@strapi/core/dist/configuration/index.js b/node_modules/@strapi/core/dist/configuration/index.js
+index d55184f..c8ecee8 100644
+--- a/node_modules/@strapi/core/dist/configuration/index.js
++++ b/node_modules/@strapi/core/dist/configuration/index.js
+@@ -14,7 +14,13 @@ var _package = require('../package.json.js');
  dotenv.config({
      path: process.env.ENV_PATH
  });
@@ -148,12 +37,12 @@ index eda2ae2..ce18d71 100644
 +        throw Error("please define NODE_ENV env variable, e.g export NODE_ENV=development");
 +    }
 +} else {
-+    process.env.NODE_ENV = process.env.NODE_ENV || "development";
++    process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 +}
- const defaultConfig$2 = {
+ const defaultConfig = {
      server: {
          host: process.env.HOST || os.hostname() || 'localhost',
-@@ -509,7 +584,14 @@ const defaultConfig$2 = {
+@@ -52,7 +58,14 @@ const defaultConfig = {
  };
  const loadConfiguration = (opts)=>{
      const { appDir, distDir, autoReload = false, serveAdminPanel = true } = opts;
@@ -169,106 +58,53 @@ index eda2ae2..ce18d71 100644
      const configDir = path.resolve(distDir || process.cwd(), 'config');
      const rootConfig = {
          launchedAt: Date.now(),
-@@ -525,10 +607,13 @@ const loadConfiguration = (opts)=>{
+@@ -69,10 +82,13 @@ const loadConfiguration = (opts)=>{
              serveAdminPanel
          }
      };
 +    process.env.DEBUG_PRINT_CONFIG && console.log('DEBUG: config, rootConfig', rootConfig);
      // See packages/core/core/src/domain/module/index.ts for plugin config loading
-     const baseConfig = fp.omit('plugins', loadConfigDir(configDir)); // plugin config will be loaded later
+     const baseConfig = fp.omit('plugins', configLoader(configDir)); // plugin config will be loaded later
 +    process.env.DEBUG_PRINT_CONFIG && console.log('DEBUG: config, baseConfig', baseConfig);
      const envDir = path.resolve(configDir, 'env', process.env.NODE_ENV);
-     const envConfig = loadConfigDir(envDir);
+     const envConfig = configLoader(envDir);
 +    process.env.DEBUG_PRINT_CONFIG && console.log('DEBUG: config, envConfig', envConfig);
-     const config = _.merge(rootConfig, defaultConfig$2, baseConfig, envConfig);
-     const { serverUrl, adminUrl } = getConfigUrls(config);
-     const serverAbsoluteUrl = getAbsoluteServerUrl(config);
-@@ -541,6 +626,7 @@ const loadConfiguration = (opts)=>{
+     const config = _.merge(rootConfig, defaultConfig, baseConfig, envConfig);
+     const { serverUrl, adminUrl } = urls.getConfigUrls(config);
+     const serverAbsoluteUrl = urls.getAbsoluteServerUrl(config);
+@@ -85,6 +101,7 @@ const loadConfiguration = (opts)=>{
      _.set(config, 'admin.path', adminPath);
      _.set(config, 'admin.absoluteUrl', adminAbsoluteUrl);
-     _.set(config, 'dirs', getDirs(opts, config));
+     _.set(config, 'dirs', getDirs.getDirs(opts, config));
 +    process.env.DEBUG_PRINT_CONFIG && console.log('DEBUG: config, merged config', config);
      return config;
  };
  
-@@ -1204,7 +1290,14 @@ const DEFAULT_FEATURES = {
+diff --git a/node_modules/@strapi/core/dist/ee/license.js b/node_modules/@strapi/core/dist/ee/license.js
+index 4d86edd..71c4947 100644
+--- a/node_modules/@strapi/core/dist/ee/license.js
++++ b/node_modules/@strapi/core/dist/ee/license.js
+@@ -37,7 +37,14 @@ const DEFAULT_FEATURES = {
          }
      ]
  };
--const publicKey = fs.readFileSync(path.resolve(__dirname, '../resources/key.pub'));
+-const publicKey = fs.readFileSync(path.resolve(__dirname, '../../resources/key.pub'));
 +let publicKey;
 +if (typeof __webpack_require__ === 'function') {
-+    const req = require.context('../resources', false, /.*\.pub$/);
-+    process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log('DEBUG: webpack context "../resources" in @strapi/core', req.id, req.keys());
++    const req = require.context('../../resources', false, /.*\.pub$/);
++    process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log('DEBUG: webpack context "../../resources" in @strapi/core', req.id, req.keys());
 +    publicKey = req('./key.pub');
 +} else {
-+    publicKey = fs.readFileSync(path.resolve(__dirname, '../resources/key.pub'));
++    publicKey = fs.readFileSync(path.resolve(__dirname, '../../resources/key.pub'));
 +}
  class LicenseCheckError extends Error {
      constructor(message, shouldFallback = false){
          super(message);
-@@ -1541,6 +1634,7 @@ Check out the new releases at: ${releaseLink}
- `.trim();
- };
- const createUpdateNotifier = (strapi)=>{
-+  if (typeof __webpack_require__ !== 'function') {
-     let config;
-     try {
-         config = new Configstore(pkg.name, {}, {
-@@ -1587,6 +1681,7 @@ const createUpdateNotifier = (strapi)=>{
-     }
-     display(NOTIF_INTERVAL);
-     checkUpdate(CHECK_INTERVAL); // doesn't need to await
-+  }
- };
- 
- // TODO: once core Node exposes a stable way to create a ProxyAgent we will use that instead of undici
-@@ -2407,20 +2502,31 @@ const dummyMiddleware = (_, next)=>next();
- /**
-  * Resolve middleware from package name or path
-  */ const resolveCustomMiddleware = (resolve, strapi)=>{
--    let modulePath;
--    try {
--        modulePath = require.resolve(resolve);
--    } catch (error) {
--        if (error instanceof Error && 'code' in error && error.code === 'MODULE_NOT_FOUND') {
--            modulePath = path.resolve(strapi.dirs.dist.root, resolve);
--        } else {
--            throw error;
-+    if (typeof __webpack_require__ === 'function') {
-+        const req = require.context('customMiddlewares', true, /^\.\/.*\.js$/);
-+        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log('DEBUG: webpack context "customMiddlewares"', req.id, req.keys());
-+        try {
-+            return strapiUtils.importDefault(resolve, req);
-+        } catch (err) {
-+            console.error(`custom middleware ${resolve} not loaded, did not find it in webpack context. export DEBUG_PRINT_WEBPACK_CONTEXT=1 for debuging`)
-+            throw new Error(`Could not load middleware "${resolve}".`);
-+        }
-+    } else {
-+        let modulePath;
-+        try {
-+            modulePath = require.resolve(resolve);
-+        } catch (error) {
-+            if (error instanceof Error && 'code' in error && error.code === 'MODULE_NOT_FOUND') {
-+                modulePath = path.resolve(strapi.dirs.dist.root, resolve);
-+            } else {
-+                throw error;
-+            }
-+        }
-+        try {
-+            return strapiUtils.importDefault(modulePath);
-+        } catch (err) {
-+            throw new Error(`Could not load middleware "${modulePath}".`);
-         }
--    }
--    try {
--        return strapiUtils.importDefault(modulePath);
--    } catch (err) {
--        throw new Error(`Could not load middleware "${modulePath}".`);
-     }
- };
- 
-@@ -4375,24 +4481,62 @@ const normalizeName = (name)=>strapiUtils.strings.isKebabCase(name) ? name : _.k
+diff --git a/node_modules/@strapi/core/dist/loaders/apis.js b/node_modules/@strapi/core/dist/loaders/apis.js
+index b8fd4d5..5b4a183 100644
+--- a/node_modules/@strapi/core/dist/loaders/apis.js
++++ b/node_modules/@strapi/core/dist/loaders/apis.js
+@@ -17,24 +17,61 @@ const normalizeName = (name)=>strapiUtils.strings.isKebabCase(name) ? name : _.k
  const isDirectory = (fd)=>fd.isDirectory();
  const isDotFile = (fd)=>fd.name.startsWith('.');
  async function loadAPIs(strapi) {
@@ -326,7 +162,6 @@ index eda2ae2..ce18d71 100644
 +        const apisFDs = await (await fse.readdir(strapi.dirs.dist.api, {
 +            withFileTypes: true
 +        })).filter(isDirectory).filter(_.negate(isDotFile));
-+        const apis = {};
 +        // only load folders
 +        for (const apiFD of apisFDs){
 +            const apiName = normalizeName(apiFD.name);
@@ -343,7 +178,7 @@ index eda2ae2..ce18d71 100644
  }
  const validateContentTypesUnicity = (apis)=>{
      const allApisSchemas = Object.values(apis).flatMap((api)=>Object.values(api.contentTypes));
-@@ -4414,16 +4558,16 @@ const validateContentTypesUnicity = (apis)=>{
+@@ -56,16 +93,16 @@ const validateContentTypesUnicity = (apis)=>{
          }
      });
  };
@@ -369,13 +204,14 @@ index eda2ae2..ce18d71 100644
      ])).map((result)=>result?.result);
      return {
          ...index || {},
-@@ -4436,27 +4580,40 @@ const loadAPI = async (apiName, dir)=>{
+@@ -78,27 +115,41 @@ const loadAPI = async (apiName, dir)=>{
          contentTypes: contentTypes || {}
      };
  };
 -const loadIndex = async (dir)=>{
 -    if (await fse.pathExists(path.join(dir, 'index.js'))) {
 -        return loadFile(path.join(dir, 'index.js'));
++
 +const loadIndex = async (dir, req)=>{
 +    const indexPath = path.join(dir, 'index.js');
 +    if (req?.fileExist(indexPath) || await fse.pathExists(indexPath)) {
@@ -426,7 +262,7 @@ index eda2ae2..ce18d71 100644
          if (fp.isEmpty(loadedContentType) || fp.isEmpty(loadedContentType.schema)) {
              throw new Error(`Could not load content type found at ${dir}`);
          }
-@@ -4476,34 +4633,52 @@ const loadContentTypes = async (apiName, dir)=>{
+@@ -118,34 +169,52 @@ const loadContentTypes = async (apiName, dir)=>{
      };
  };
  // because this is async and its contents are dynamic, we must return it within an object to avoid a property called `then` being interpreted as a Promise
@@ -492,105 +328,12 @@ index eda2ae2..ce18d71 100644
              return {
                  result: await fse.readJSON(file)
              };
-@@ -4618,8 +4793,17 @@ const favicon = (config, { strapi })=>{
-    *
-    *  This check ensures backwards compatibility until
-    *  the next major version
--   */ if (!fs.existsSync(path.resolve(appRoot, faviconPath))) {
--        faviconPath = 'favicon.ico';
-+   */
-+    if (typeof __webpack_require__ === "function") {
-+        const req = require.context("favicon", false, /favicon\.(ico|png)$/);
-+        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'favicon'", req.id, req.keys());
-+        if (!req.keys().includes(`./${path.basename(faviconPath)}`)){
-+            faviconPath = "favicon.ico";
-+        }
-+    } else {
-+        if (!fs.existsSync(path.resolve(appRoot, faviconPath))) {
-+            faviconPath = 'favicon.ico';
-+        }
-     }
-     return koaFavicon(path.resolve(appRoot, faviconPath), {
-         maxAge
-@@ -4956,22 +5140,33 @@ async function loadMiddlewares(strapi) {
-     strapi.get('middlewares').add(`strapi::`, middlewares);
- }
- const loadLocalMiddlewares = async (strapi)=>{
--    const dir = strapi.dirs.dist.middlewares;
--    if (!await fse.pathExists(dir)) {
--        return {};
--    }
-     const middlewares = {};
--    const paths = await fse.readdir(dir, {
--        withFileTypes: true
--    });
--    for (const fd of paths){
--        const { name } = fd;
--        const fullPath = path.join(dir, name);
--        if (fd.isFile() && path.extname(name) === '.js') {
-+    if (typeof __webpack_require__ === 'function') {
-+        const req = require.context('middlewares', false, /^\.\/.*\.js$/);
-+        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log('DEBUG: webpack context "middlewares"', req.id, req.keys());
-+        for (const name of req.keys()) {
-             const key = path.basename(name, '.js');
--            middlewares[key] = strapiUtils.importDefault(fullPath);
-+            middlewares[key] = strapiUtils.importDefault(name, req);
-+        }
-+    } else {
-+        const dir = strapi.dirs.dist.middlewares;
-+        if (!await fse.pathExists(dir)) {
-+            return {};
-+        }
-+        const middlewares = {};
-+        const paths = await fse.readdir(dir, {
-+            withFileTypes: true
-+        });
-+        for (const fd of paths){
-+            const { name } = fd;
-+            const fullPath = path.join(dir, name);
-+            if (fd.isFile() && path.extname(name) === '.js') {
-+                const key = path.basename(name, '.js');
-+                middlewares[key] = strapiUtils.importDefault(fullPath);
-+            }
-         }
-     }
-+    process.env.DEBUG_PRINT_STRAPI_MODULES && console.log('DEBUG: modules: loadLocalMiddlewares', middlewares);
-     return middlewares;
- };
- 
-@@ -4997,21 +5192,25 @@ const removeRelativePrefix = (filePath)=>{
-  * Returns an Object build from a list of files matching a glob pattern in a directory
-  * It builds a tree structure resembling the folder structure in dir
-  */ const loadFiles = async (dir, pattern, // eslint-disable-next-line @typescript-eslint/no-unused-vars
--{ requireFn = strapiUtils.importDefault, shouldUseFileNameAsKey = (_)=>true, globArgs = {} } = {})=>{
-+{ requireFn = strapiUtils.importDefault, shouldUseFileNameAsKey = (_)=>true, globArgs = {}, req = null } = {})=>{
-     const root = {};
--    const files = await glob.glob(pattern, {
-+    const files = req ? req.keys() : await glob.glob(pattern, {
-         cwd: dir,
-         ...globArgs
-     });
-     for (const file of files){
--        const absolutePath = path.resolve(dir, file);
-+        const absolutePath = req ? file : path.resolve(dir, file);
-         // load module
-         delete require.cache[absolutePath];
-         let mod;
-         if (path.extname(absolutePath) === '.json') {
--            mod = await fse.readJson(absolutePath);
-+            if (req) {
-+                mod = req(file);
-+              } else {
-+                mod = await fse.readJson(absolutePath);
-+              }
-         } else {
--            mod = requireFn(absolutePath);
-+            mod = requireFn(absolutePath, req);
-         }
-         Object.defineProperty(mod, '__filename__', {
-             enumerable: true,
-@@ -5027,16 +5226,29 @@ const removeRelativePrefix = (filePath)=>{
- };
+diff --git a/node_modules/@strapi/core/dist/loaders/components.js b/node_modules/@strapi/core/dist/loaders/components.js
+index 25f81b1..e272545 100644
+--- a/node_modules/@strapi/core/dist/loaders/components.js
++++ b/node_modules/@strapi/core/dist/loaders/components.js
+@@ -6,16 +6,29 @@ var fse = require('fs-extra');
+ var loadFiles = require('../utils/load-files.js');
  
  async function loadComponents(strapi) {
 -    if (!await fse.pathExists(strapi.dirs.dist.components)) {
@@ -603,16 +346,16 @@ index eda2ae2..ce18d71 100644
 +        if (req.keys().length === 0) {
 +            return {};
 +        }
-+        map = await loadFiles('components', '*/*.*(js|json)', { req });
++        map = await loadFiles.loadFiles('components', '*/*.*(js|json)', { req });
 +        dirName = '';
 +    } else {
 +        if (!await fse.pathExists(strapi.dirs.dist.components)) {
 +            return {};
 +        }
-+        map = await loadFiles(strapi.dirs.dist.components, '*/*.*(js|json)');
++        map = await loadFiles.loadFiles(strapi.dirs.dist.components, '*/*.*(js|json)');
 +        dirName = strapi.dirs.app.components;
      }
--    const map = await loadFiles(strapi.dirs.dist.components, '*/*.*(js|json)');
+-    const map = await loadFiles.loadFiles(strapi.dirs.dist.components, '*/*.*(js|json)');
      const components = Object.keys(map).reduce((acc, category)=>{
          Object.keys(map[category]).forEach((key)=>{
              const schema = map[category][key];
@@ -623,37 +366,48 @@ index eda2ae2..ce18d71 100644
                  return strapi.stopWithError(`Component ${key} is missing a "collectionName" property.\nVerify file ${filePath}.`);
              }
              const uid = `${category}.${key}`;
-@@ -5052,6 +5264,7 @@ async function loadComponents(strapi) {
+@@ -31,6 +44,7 @@ async function loadComponents(strapi) {
          return acc;
      }, {});
      strapi.get('components').add(components);
 +    process.env.DEBUG_PRINT_STRAPI_MODULES && console.log('DEBUG: modules: loadComponents', components);
  }
  
- // TODO:: allow folders with index.js inside for bigger policies
-@@ -5080,6 +5293,13 @@ async function loadPolicies(strapi) {
-  * first load config from `config/plugins.js`
-  * and then merge config from `config/env/{env}/plugins.js`
-  */ const getUserPluginsConfig = async ()=>{
+ module.exports = loadComponents;
+diff --git a/node_modules/@strapi/core/dist/loaders/middlewares.js b/node_modules/@strapi/core/dist/loaders/middlewares.js
+index b6c6d55..28e9442 100644
+--- a/node_modules/@strapi/core/dist/loaders/middlewares.js
++++ b/node_modules/@strapi/core/dist/loaders/middlewares.js
+@@ -12,6 +12,15 @@ async function loadMiddlewares(strapi) {
+     strapi.get('middlewares').add(`strapi::`, index.middlewares);
+ }
+ const loadLocalMiddlewares = async (strapi)=>{
++    const middlewares = {};
 +    if (typeof __webpack_require__ === 'function') {
-+        const req = require.context('config', false, /^\.\/plugins\.js$/);
-+        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log('DEBUG: webpack context "config"', req.id, req.keys());
-+        const config = loadConfigFile('plugins.js', req);
-+        process.env.DEBUG_PRINT_STRAPI_MODULES && console.log('DEBUG: modules: getUserPluginsConfig', config);
-+        return config;
-+    }
-     const globalUserConfigPath = path.join(strapi.dirs.dist.config, 'plugins.js');
-     const currentEnvUserConfigPath = path.join(strapi.dirs.dist.config, 'env', process.env.NODE_ENV, 'plugins.js');
-     let config = {};
-@@ -5091,6 +5311,7 @@ async function loadPolicies(strapi) {
-     if (await fse.pathExists(currentEnvUserConfigPath)) {
-         config = fp.merge(config, loadConfigFile(currentEnvUserConfigPath));
++        const req = require.context('middlewares', false, /^\.\/.*\.js$/);
++        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log('DEBUG: webpack context "middlewares"', req.id, req.keys());
++        for (const name of req.keys()) {
++            const key = path.basename(name, '.js');
++            middlewares[key] = strapiUtils.importDefault(name, req);
++        }
++    } else {
+     const dir = strapi.dirs.dist.middlewares;
+     if (!await fse.pathExists(dir)) {
+         return {};
+@@ -28,6 +37,8 @@ const loadLocalMiddlewares = async (strapi)=>{
+             middlewares[key] = strapiUtils.importDefault(fullPath);
+         }
      }
-+    process.env.DEBUG_PRINT_STRAPI_MODULES && console.log('DEBUG: modules: getUserPluginsConfig', config);
-     return config;
++    }
++    process.env.DEBUG_PRINT_STRAPI_MODULES && console.log('DEBUG: modules: loadLocalMiddlewares', middlewares);
+     return middlewares;
  };
  
-@@ -5129,6 +5350,8 @@ const toDetailedDeclaration = (declaration)=>{
+diff --git a/node_modules/@strapi/core/dist/loaders/plugins/get-enabled-plugins.js b/node_modules/@strapi/core/dist/loaders/plugins/get-enabled-plugins.js
+index ca35132..e1af78f 100644
+--- a/node_modules/@strapi/core/dist/loaders/plugins/get-enabled-plugins.js
++++ b/node_modules/@strapi/core/dist/loaders/plugins/get-enabled-plugins.js
+@@ -42,6 +42,8 @@ const toDetailedDeclaration = (declaration)=>{
              /**
         * we only want the node_module here, not the package.json
         */ pathToPlugin = path.join(declaration.resolve, '..');
@@ -662,7 +416,7 @@ index eda2ae2..ce18d71 100644
          } else {
              try {
                  pathToPlugin = path.dirname(require.resolve(declaration.resolve));
-@@ -5147,16 +5370,31 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -60,16 +62,31 @@ const getEnabledPlugins = async (strapi1, { client } = {
      client: false
  })=>{
      const internalPlugins = {};
@@ -697,7 +451,7 @@ index eda2ae2..ce18d71 100644
          validatePluginName(packageInfo.strapi.name);
          internalPlugins[packageInfo.strapi.name] = {
              ...toDetailedDeclaration({
-@@ -5174,7 +5412,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -87,7 +104,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
          const packagePath = path.join(dep, 'package.json');
          let packageInfo;
          try {
@@ -706,15 +460,15 @@ index eda2ae2..ce18d71 100644
          } catch  {
              continue;
          }
-@@ -5194,6 +5432,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -107,6 +124,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
              };
          }
      }
 +    process.env.DEBUG_PRINT_STRAPI_MODULES && console.log('DEBUG: modules: getEnabledPlugins, installedPlugins from package dependencies', dependencies, installedPlugins);  
      const declaredPlugins = {};
-     const userPluginsConfig = await getUserPluginsConfig();
+     const userPluginsConfig = await getUserPluginsConfig.getUserPluginsConfig();
      _.forEach(userPluginsConfig, (declaration, pluginName)=>{
-@@ -5206,7 +5445,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -119,7 +137,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
          // for manually resolved plugins
          if (pathToPlugin) {
              const packagePath = path.join(pathToPlugin, 'package.json');
@@ -723,7 +477,7 @@ index eda2ae2..ce18d71 100644
              if (isStrapiPlugin(packageInfo)) {
                  declaredPlugins[pluginName].info = packageInfo.strapi || {};
                  declaredPlugins[pluginName].packageInfo = packageInfo;
-@@ -5216,6 +5455,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
+@@ -129,6 +147,7 @@ const getEnabledPlugins = async (strapi1, { client } = {
      const declaredPluginsResolves = fp.map(fp.prop('pathToPlugin'), declaredPlugins);
      const installedPluginsNotAlreadyUsed = fp.pickBy((p)=>!declaredPluginsResolves.includes(p.pathToPlugin), installedPlugins);
      const enabledPlugins = fp.pipe(fp.defaultsDeep(declaredPlugins), fp.defaultsDeep(installedPluginsNotAlreadyUsed), fp.pickBy((p)=>p.enabled))(internalPlugins);
@@ -731,7 +485,48 @@ index eda2ae2..ce18d71 100644
      return enabledPlugins;
  };
  
-@@ -5235,12 +5475,23 @@ const defaultPlugin = {
+diff --git a/node_modules/@strapi/core/dist/loaders/plugins/get-user-plugins-config.js b/node_modules/@strapi/core/dist/loaders/plugins/get-user-plugins-config.js
+index 889d09f..a39da61 100644
+--- a/node_modules/@strapi/core/dist/loaders/plugins/get-user-plugins-config.js
++++ b/node_modules/@strapi/core/dist/loaders/plugins/get-user-plugins-config.js
+@@ -10,6 +10,13 @@ var loadConfigFile = require('../../utils/load-config-file.js');
+  * first load config from `config/plugins.js`
+  * and then merge config from `config/env/{env}/plugins.js`
+  */ const getUserPluginsConfig = async ()=>{
++    if (typeof __webpack_require__ === 'function') {
++        const req = require.context('config', false, /^\.\/plugins\.js$/);
++        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log('DEBUG: webpack context "config"', req.id, req.keys());
++        const config = loadConfigFile.loadConfigFile('plugins.js', req);
++        process.env.DEBUG_PRINT_STRAPI_MODULES && console.log('DEBUG: modules: getUserPluginsConfig', config);
++        return config;
++    }
+     const globalUserConfigPath = path.join(strapi.dirs.dist.config, 'plugins.js');
+     const currentEnvUserConfigPath = path.join(strapi.dirs.dist.config, 'env', process.env.NODE_ENV, 'plugins.js');
+     let config = {};
+@@ -21,6 +28,7 @@ var loadConfigFile = require('../../utils/load-config-file.js');
+     if (await fse.pathExists(currentEnvUserConfigPath)) {
+         config = fp.merge(config, loadConfigFile.loadConfigFile(currentEnvUserConfigPath));
+     }
++    process.env.DEBUG_PRINT_STRAPI_MODULES && console.log('DEBUG: modules: getUserPluginsConfig', config);
+     return config;
+ };
+ 
+diff --git a/node_modules/@strapi/core/dist/loaders/plugins/index.js b/node_modules/@strapi/core/dist/loaders/plugins/index.js
+index 267df15..eda44f7 100644
+--- a/node_modules/@strapi/core/dist/loaders/plugins/index.js
++++ b/node_modules/@strapi/core/dist/loaders/plugins/index.js
+@@ -1,6 +1,9 @@
+ 'use strict';
+ 
+-var path = require('path');
++let path = require('path');
++if (typeof __webpack_require__ === 'function') {
++  path = path.posix;
++}
+ var fse = require('fs-extra');
+ var fp = require('lodash/fp');
+ var resolve = require('resolve.exports');
+@@ -46,12 +49,23 @@ const defaultPlugin = {
      contentTypes: {}
  };
  const applyUserExtension = async (plugins)=>{
@@ -745,24 +540,24 @@ index eda2ae2..ce18d71 100644
 +        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'extensions'", req.id, req.keys());
 +        const req2 = require.context("extensions", true, /.+\/strapi-server\.js$/);
 +        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'extensions'", req2.id, req2.keys());
-+        extendedSchemas = await loadFiles("", "**/content-types/**/schema.json$", { req });
-+        strapiServers = await loadFiles("", "**/strapi-server.js$", { req:req2 });
++        extendedSchemas = await loadFiles.loadFiles("", "**/content-types/**/schema.json$", { req });
++        strapiServers = await loadFiles.loadFiles("", "**/strapi-server.js$", { req:req2 });
 +    } else {
 +        const extensionsDir = strapi.dirs.dist.extensions;
 +        if (!await fse.pathExists(extensionsDir)) {
 +            return;
 +        }
-+        extendedSchemas = await loadFiles(extensionsDir, '**/content-types/**/schema.json');
-+        strapiServers = await loadFiles(extensionsDir, '**/strapi-server.js');
++        extendedSchemas = await loadFiles.loadFiles(extensionsDir, '**/content-types/**/schema.json');
++        strapiServers = await loadFiles.loadFiles(extensionsDir, '**/strapi-server.js');
      }
--    const extendedSchemas = await loadFiles(extensionsDir, '**/content-types/**/schema.json');
--    const strapiServers = await loadFiles(extensionsDir, '**/strapi-server.js');
+-    const extendedSchemas = await loadFiles.loadFiles(extensionsDir, '**/content-types/**/schema.json');
+-    const strapiServers = await loadFiles.loadFiles(extensionsDir, '**/strapi-server.js');
      for (const pluginName of Object.keys(plugins)){
          const plugin = plugins[pluginName];
          // first: load json schema
-@@ -5292,6 +5543,11 @@ async function loadPlugins(strapi1) {
+@@ -103,6 +117,11 @@ async function loadPlugins(strapi1) {
      const plugins = {};
-     const enabledPlugins = await getEnabledPlugins(strapi1);
+     const enabledPlugins = await getEnabledPlugins.getEnabledPlugins(strapi1);
      strapi1.config.set('enabledPlugins', enabledPlugins);
 +    let req;
 +    if (typeof __webpack_require__ === 'function') {
@@ -772,11 +567,10 @@ index eda2ae2..ce18d71 100644
      for (const pluginName of Object.keys(enabledPlugins)){
          const enabledPlugin = enabledPlugins[pluginName];
          let serverEntrypointPath;
-@@ -5308,11 +5564,21 @@ async function loadPlugins(strapi1) {
-         } catch (e) {
+@@ -120,10 +139,21 @@ async function loadPlugins(strapi1) {
              throw new Error(`Error loading the plugin ${pluginName} because ${pluginName} is not installed. Please either install the plugin or remove it's configuration.`);
          }
--        // only load plugins with a server entrypoint
+         // only load plugins with a server entrypoint
 -        if (!await fse.pathExists(serverEntrypointPath)) {
 -            continue;
 +        let pluginServer;
@@ -786,19 +580,19 @@ index eda2ae2..ce18d71 100644
 +                console.error(`plugin ${pluginName} not loaded, did not find ${serverEntrypointPath} (${enabledPlugin.pathToPlugin},${resolvedExport}) in webpack context. export DEBUG_PRINT_WEBPACK_CONTEXT=1 for debuging`)
 +                continue;
 +            }
-+            pluginServer = loadConfigFile(serverEntrypointPath, req);
++            pluginServer = loadConfigFile.loadConfigFile(serverEntrypointPath, req);
 +        } else {
 +            // only load plugins with a server entrypoint
 +            if (!await fse.pathExists(serverEntrypointPath)) {
 +                continue;
 +            }
-+            pluginServer = loadConfigFile(serverEntrypointPath);
++            pluginServer = loadConfigFile.loadConfigFile(serverEntrypointPath);
          }
--        const pluginServer = loadConfigFile(serverEntrypointPath);
+-        const pluginServer = loadConfigFile.loadConfigFile(serverEntrypointPath);
          plugins[pluginName] = {
              ...defaultPlugin,
              ...pluginServer,
-@@ -5327,6 +5593,7 @@ async function loadPlugins(strapi1) {
+@@ -138,6 +168,7 @@ async function loadPlugins(strapi1) {
      for (const pluginName of Object.keys(plugins)){
          strapi1.get('plugins').add(pluginName, plugins[pluginName]);
      }
@@ -806,3 +600,191 @@ index eda2ae2..ce18d71 100644
  }
  const formatContentTypes = (pluginName, contentTypes)=>{
      Object.values(contentTypes).forEach((definition)=>{
+diff --git a/node_modules/@strapi/core/dist/middlewares/favicon.js b/node_modules/@strapi/core/dist/middlewares/favicon.js
+index 3ba2f2e..0201d90 100644
+--- a/node_modules/@strapi/core/dist/middlewares/favicon.js
++++ b/node_modules/@strapi/core/dist/middlewares/favicon.js
+@@ -20,8 +20,17 @@ const favicon = (config, { strapi })=>{
+    *
+    *  This check ensures backwards compatibility until
+    *  the next major version
+-   */ if (!fs.existsSync(path.resolve(appRoot, faviconPath))) {
+-        faviconPath = 'favicon.ico';
++   */
++    if (typeof __webpack_require__ === "function") {
++        const req = require.context("favicon", false, /favicon\.(ico|png)$/);
++        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'favicon'", req.id, req.keys());
++        if (!req.keys().includes(`./${path.basename(faviconPath)}`)){
++            faviconPath = "favicon.ico";
++        }
++    } else {
++        if (!fs.existsSync(path.resolve(appRoot, faviconPath))) {
++            faviconPath = 'favicon.ico';
++        }
+     }
+     return koaFavicon(path.resolve(appRoot, faviconPath), {
+         maxAge
+diff --git a/node_modules/@strapi/core/dist/services/server/middleware.js b/node_modules/@strapi/core/dist/services/server/middleware.js
+index b0f4e85..3071a93 100644
+--- a/node_modules/@strapi/core/dist/services/server/middleware.js
++++ b/node_modules/@strapi/core/dist/services/server/middleware.js
+@@ -74,6 +74,16 @@ const dummyMiddleware = (_, next)=>next();
+ /**
+  * Resolve middleware from package name or path
+  */ const resolveCustomMiddleware = (resolve, strapi)=>{
++    if (typeof __webpack_require__ === 'function') {
++        const req = require.context('customMiddlewares', true, /^\.\/.*\.js$/);
++        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log('DEBUG: webpack context "customMiddlewares"', req.id, req.keys());
++        try {
++            return strapiUtils.importDefault(resolve, req);
++        } catch (err) {
++            console.error(`custom middleware ${resolve} not loaded, did not find it in webpack context. export DEBUG_PRINT_WEBPACK_CONTEXT=1 for debuging`)
++            throw new Error(`Could not load middleware "${resolve}".`);
++        }
++    } else {
+     let modulePath;
+     try {
+         modulePath = require.resolve(resolve);
+@@ -89,6 +99,7 @@ const dummyMiddleware = (_, next)=>next();
+     } catch (err) {
+         throw new Error(`Could not load middleware "${modulePath}".`);
+     }
++    }
+ };
+ 
+ exports.resolveMiddlewares = resolveMiddlewares;
+diff --git a/node_modules/@strapi/core/dist/utils/load-config-file.js b/node_modules/@strapi/core/dist/utils/load-config-file.js
+index c1691d9..457b904 100644
+--- a/node_modules/@strapi/core/dist/utils/load-config-file.js
++++ b/node_modules/@strapi/core/dist/utils/load-config-file.js
+@@ -3,8 +3,47 @@
+ var path = require('path');
+ var fs = require('fs');
+ var strapiUtils = require('@strapi/utils');
+-
+-const loadJsFile = (file)=>{
++let loadJsFile;
++let loadJSONFile;
++let loadConfigFile;
++if (typeof __webpack_require__ === 'function') {
++    loadJsFile = (file, req) => {
++        try {
++            const jsModule = strapiUtils.importDefault(file, req);
++            if (typeof jsModule === 'function') {
++                return jsModule({ env: strapiUtils.env });
++            }
++            return jsModule;
++        } catch (error) {
++            if (error instanceof Error) {
++                throw new Error(`Could not load js config file ${file} in webpack context with id ${req.id}. export DEBUG_PRINT_WEBPACK_CONTEXT=1 for debuging: ${error.message}`);
++            }
++            throw new Error('Unknown error');
++        }
++    };
++    loadJSONFile = (file, req) => {
++        try {
++            return req(file);
++        } catch (error) {
++            if (error instanceof Error) {
++                throw new Error(`Could not load json config file ${file} in webpack context with id ${req.id}. export DEBUG_PRINT_WEBPACK_CONTEXT=1 for debuging: ${error.message}`);
++            }
++            throw new Error('Unknown error');
++        }
++    };
++    loadConfigFile = (file, req) => {
++        const ext = path.extname(file);
++        switch (ext) {
++            case '.js':
++                return loadJsFile(file, req);
++            case '.json':
++                return loadJSONFile(file, req);
++            default:
++                return {};
++        }
++    };
++} else {
++loadJsFile = (file)=>{
+     try {
+         const jsModule = strapiUtils.importDefault(file);
+         // call if function
+@@ -21,7 +60,7 @@ const loadJsFile = (file)=>{
+         throw new Error('Unknown error');
+     }
+ };
+-const loadJSONFile = (file)=>{
++loadJSONFile = (file)=>{
+     try {
+         return JSON.parse(fs.readFileSync(file).toString());
+     } catch (error) {
+@@ -31,7 +70,7 @@ const loadJSONFile = (file)=>{
+         throw new Error('Unknown error');
+     }
+ };
+-const loadConfigFile = (file)=>{
++loadConfigFile = (file)=>{
+     const ext = path.extname(file);
+     switch(ext){
+         case '.js':
+@@ -42,6 +81,7 @@ const loadConfigFile = (file)=>{
+             return {};
+     }
+ };
++}
+ 
+ exports.loadConfigFile = loadConfigFile;
+ //# sourceMappingURL=load-config-file.js.map
+diff --git a/node_modules/@strapi/core/dist/utils/load-files.js b/node_modules/@strapi/core/dist/utils/load-files.js
+index 2c64319..b3545d1 100644
+--- a/node_modules/@strapi/core/dist/utils/load-files.js
++++ b/node_modules/@strapi/core/dist/utils/load-files.js
+@@ -11,21 +11,25 @@ var filepathToPropPath = require('./filepath-to-prop-path.js');
+  * Returns an Object build from a list of files matching a glob pattern in a directory
+  * It builds a tree structure resembling the folder structure in dir
+  */ const loadFiles = async (dir, pattern, // eslint-disable-next-line @typescript-eslint/no-unused-vars
+-{ requireFn = strapiUtils.importDefault, shouldUseFileNameAsKey = (_)=>true, globArgs = {} } = {})=>{
++{ requireFn = strapiUtils.importDefault, shouldUseFileNameAsKey = (_)=>true, globArgs = {}, req = null } = {})=>{
+     const root = {};
+-    const files = await glob.glob(pattern, {
++    const files = req ? req.keys() : await glob.glob(pattern, {
+         cwd: dir,
+         ...globArgs
+     });
+     for (const file of files){
+-        const absolutePath = path.resolve(dir, file);
++        const absolutePath =  req ? file : path.resolve(dir, file);
+         // load module
+         delete require.cache[absolutePath];
+         let mod;
+         if (path.extname(absolutePath) === '.json') {
+-            mod = await fse.readJson(absolutePath);
++            if (req) {
++                mod = req(file);
++              } else {
++                mod = await fse.readJson(absolutePath);
++              }
+         } else {
+-            mod = requireFn(absolutePath);
++            mod = requireFn(absolutePath, req);
+         }
+         Object.defineProperty(mod, '__filename__', {
+             enumerable: true,
+diff --git a/node_modules/@strapi/core/dist/utils/update-notifier/index.js b/node_modules/@strapi/core/dist/utils/update-notifier/index.js
+index f72c5b1..3c1dd8a 100644
+--- a/node_modules/@strapi/core/dist/utils/update-notifier/index.js
++++ b/node_modules/@strapi/core/dist/utils/update-notifier/index.js
+@@ -28,6 +28,7 @@ Check out the new releases at: ${releaseLink}
+ `.trim();
+ };
+ const createUpdateNotifier = (strapi)=>{
++  if (typeof __webpack_require__ !== 'function') {
+     let config;
+     try {
+         config = new Configstore(_package.default.name, {}, {
+@@ -74,6 +75,7 @@ const createUpdateNotifier = (strapi)=>{
+     }
+     display(NOTIF_INTERVAL);
+     checkUpdate(CHECK_INTERVAL); // doesn't need to await
++  }
+ };
+ 
+ exports.createUpdateNotifier = createUpdateNotifier;

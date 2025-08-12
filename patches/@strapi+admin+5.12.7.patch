@@ -1,0 +1,62 @@
+diff --git a/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js b/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
+index 2bc76c3..14ce491 100644
+--- a/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
++++ b/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
+@@ -9,7 +9,6 @@ var utils = require('@strapi/utils');
+ var tsUtils = require('@strapi/typescript-utils');
+ var projectSettings = require('../validation/project-settings.js');
+ var index = require('../utils/index.js');
+-
+ const { isUsingTypeScript } = tsUtils;
+ /**
+  * A set of functions called "actions" for `Admin`
+diff --git a/node_modules/@strapi/admin/dist/server/server/src/routes/serve-admin-panel.js b/node_modules/@strapi/admin/dist/server/server/src/routes/serve-admin-panel.js
+index 4f297e4..ea4d606 100644
+--- a/node_modules/@strapi/admin/dist/server/server/src/routes/serve-admin-panel.js
++++ b/node_modules/@strapi/admin/dist/server/server/src/routes/serve-admin-panel.js
+@@ -5,6 +5,37 @@ var fse = require('fs-extra');
+ var koaStatic = require('koa-static');
+ 
+ const registerAdminPanelRoute = ({ strapi })=>{
++  if (typeof __webpack_require__ === "function") {
++    const req = require.context("admin_web", true, /\.(html|css|js)$/);
++    process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'admin_web'", req.id, req.keys());
++    strapi.server.routes([
++      {
++        method: "GET",
++        path: `${strapi.config.admin.path}/:path*`,
++        handler: [
++          async (ctx, next) => {
++            await next();
++            if (ctx.method !== "HEAD" && ctx.method !== "GET") {
++              return;
++            }
++            if (ctx.body != null || ctx.status !== 404) {
++              return;
++            }
++            const fileName = "./" + path.basename(ctx.path);
++            if (req.keys().includes(fileName)) {
++              ctx.body = req(fileName);
++              ctx.type = fileName.split('.').pop();
++              ctx.res.setHeader("cache-control", "public, max-age=31536000, immutable");
++            } else {
++              ctx.body = req("./index.html");
++              ctx.type = "html";
++            }
++          }
++        ],
++        config: { auth: false }
++      }
++    ]);
++  } else {
+     let buildDir = path.resolve(strapi.dirs.dist.root, 'build');
+     if (!fse.pathExistsSync(buildDir)) {
+         buildDir = path.resolve(__dirname, '../../build');
+@@ -44,6 +75,7 @@ const registerAdminPanelRoute = ({ strapi })=>{
+             }
+         }
+     ]);
++  }
+ };
+ // serveStatic is not supposed to be used to serve a folder that have sub-folders
+ const serveStatic = (filesDir, koaStaticOptions = {})=>{

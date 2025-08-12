@@ -1,8 +1,8 @@
-diff --git a/node_modules/@strapi/upload/dist/server/chunks/index-BkUy20d9.js b/node_modules/@strapi/upload/dist/server/chunks/index-BkUy20d9.js
-index 647601a..f58e8b3 100644
---- a/node_modules/@strapi/upload/dist/server/chunks/index-BkUy20d9.js
-+++ b/node_modules/@strapi/upload/dist/server/chunks/index-BkUy20d9.js
-@@ -356,23 +356,34 @@ const createProvider = (config)=>{
+diff --git a/node_modules/@strapi/upload/dist/server/register.js b/node_modules/@strapi/upload/dist/server/register.js
+index e7deaed..9c7756a 100644
+--- a/node_modules/@strapi/upload/dist/server/register.js
++++ b/node_modules/@strapi/upload/dist/server/register.js
+@@ -34,23 +34,34 @@ const createProvider = (config)=>{
      const providerName = _.toLower(config.provider);
      let provider;
      let modulePath;
@@ -51,7 +51,7 @@ index 647601a..f58e8b3 100644
      }
      const providerInstance = provider.init(providerOptions);
      if (!providerInstance.delete) {
-@@ -387,7 +398,9 @@ const createProvider = (config)=>{
+@@ -65,7 +76,9 @@ const createProvider = (config)=>{
      const wrappedProvider = _.mapValues(providerInstance, (method, methodName)=>{
          return async (file, options = actionOptions[methodName])=>providerInstance[methodName](file, options);
      });

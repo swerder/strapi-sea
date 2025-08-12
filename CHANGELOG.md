@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.12.7
+
+- update node module patch files for Strapi 5.12.7
+- exclude typescript dependency by mocking '@strapi/typescript-utils'
+- add postject as dev dependency to allow call without internet connection
+- add webpack logic for bundle 'bufferutil' and 'utf-8-validate', as 'ws' is now realy loaded in sea context for @strapi/data-transfer
+- add optional patch apply logic for optional packages
+
 ## 5.11.1
 
 - update node module patch files for Strapi 5.11.1

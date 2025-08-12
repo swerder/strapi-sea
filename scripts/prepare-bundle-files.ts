@@ -125,6 +125,7 @@ if (destSubFolder !== 'bundled') {
     'node_modules/**/sharp/build/Release/lib*',
     'node_modules/**/sharp/vendor/**/lib/lib*',
     `node_modules/@img/sharp-libvips-${platformArch}/lib/lib*`,
+    `node_modules/@img/sharp-${platformArch}/lib/lib*`,
   ];
 
   let libvipsFound = false;

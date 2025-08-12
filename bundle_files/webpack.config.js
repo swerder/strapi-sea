@@ -15,6 +15,42 @@ for (const dirName of ['middlewares', 'api', 'components', 'extensions','migrati
   }
 }
 
+//check for modules bufferutil / utf-8-validate and if exist prevent to copy not needed node files to output by delete them from prebuilds
+let additionalExternals = [];
+let additionalPlugins = [];
+const removeUnmatchingPrebuilds = (moduleName, addPluginOnError) => {
+  try {
+    const bufferutilRoot = path.dirname(require.resolve(`${moduleName}/package.json`));
+    const prebuildsDir = path.join(bufferutilRoot, 'prebuilds');
+    const bufferutilPrebuildDirs = fs
+      .readdirSync(prebuildsDir, { withFileTypes: true })
+      .filter(d => d.isDirectory() && !d.name.startsWith(process.platform))
+      .map(d => path.join(prebuildsDir, d.name));
+    bufferutilPrebuildDirs.forEach(dir => {
+      fs.rmSync(dir, { recursive: true, force: true });
+      console.log(`removed: ${dir}`);
+    });
+  } catch(e){
+    if (addPluginOnError) {
+      console.log(`${moduleName} for clean prebuilds not found, prevent using module`);
+      additionalPlugins.push(addPluginOnError);
+    } else {
+      console.log(`${moduleName} for clean prebuilds not found, add the module to "externals"`);
+      additionalExternals.push(moduleName);
+    }
+  }
+}
+removeUnmatchingPrebuilds('bufferutil', 
+  new webpack.DefinePlugin({
+    'process.env.WS_NO_BUFFER_UTIL': JSON.stringify('1'), // set this value fixed for webpack, so the module loading in ws/lib/buffer-util.js is not triggered
+  }),
+);
+removeUnmatchingPrebuilds('utf-8-validate',
+  new webpack.DefinePlugin({
+    'process.env.WS_NO_UTF_8_VALIDATE': JSON.stringify('1'), // set this value fixed for webpack, so the module loading in ws/lib/validation.js is not triggered
+  }),
+);
+
 module.exports = {
   entry: './dist/src/server.js',
   output: {
@@ -24,7 +60,7 @@ module.exports = {
   },
   mode: 'production', //process.env.NODE_ENV, //'development', or 'production'
   target: 'node',
-  externals: [
+  externals: [...[
     //prevent loading/packing unused DB dialects
     'mysql',
     'mssql', 'tedious',
@@ -39,14 +75,12 @@ module.exports = {
     'redis',
     'sequelize',
     'request-logs',
-    'utf-8-validate',
-    'bufferutil',
     '@hapi/hapi/package.json',
     'hapi/package.json',
     'plop',
     'node-plop',
     'prettier',
-  ],
+  ], ...additionalExternals],
   resolve: {
     alias: {
       'lodash/fp': 'lodash/fp.js',
@@ -54,11 +88,12 @@ module.exports = {
       'knex/lib/raw': 'knex/lib/raw.js',
       'stream-json/jsonl/Parser': 'stream-json/jsonl/Parser.js',
       'stream-json/jsonl/Stringer': 'stream-json/jsonl/Stringer.js',
+      '@strapi/typescript-utils': path.resolve(referencePath, 'bundle_files/tsutil.mock.js')
     },
     //on normal strapi run commonJS is prefered so do this here also
     mainFields: ['main', 'module'],
   },
-  plugins: [
+  plugins: [...[
     //to show size and files that are part of the bundle activate the following line
     //new BundleAnalyzerPlugin(),
     new webpack.ProvidePlugin({
@@ -99,7 +134,9 @@ module.exports = {
     new webpack.ContextReplacementPlugin(/^config\/sync$/, path.resolve(referencePath, 'config/sync')),
     new webpack.ContextReplacementPlugin(/^admin_web$/, path.resolve(referencePath, 'dist/build')),
     new webpack.ContextReplacementPlugin(/^favicon$/, referencePath),
-  ],
+    new webpack.ContextReplacementPlugin(/^sharp_node_fallback_dir$/, referencePath),
+    new webpack.ContextReplacementPlugin(/^node_modules_@img_versions$/, path.resolve(referencePath, 'node_modules/@img')),
+  ], ...additionalPlugins],
   optimization: {
     minimize: false,
     splitChunks: false,
@@ -120,7 +157,26 @@ module.exports = {
         test: /\.node$/,
         loader: 'node-loader',
         options: {
-          name: '[name].[ext]',
+          //name: '[name].[contenthash].[ext]',
+          name(resourcePath) {
+            const pathParts = resourcePath.split(/[\/\\]/);
+            const fileName = pathParts[pathParts.length-1];
+            const dirName = pathParts[pathParts.length-3] === 'prebuilds' ? pathParts[pathParts.length-2] : null;
+            
+            let namePattern = '[name]';
+            if (dirName && (!fileName.includes('win32') && !fileName.includes('linux') && !fileName.includes('darwin'))) {
+              namePattern = namePattern + '-' + dirName;
+            }
+            const nmIndex = pathParts.lastIndexOf('node_modules');
+            if (nmIndex !== -1 && pathParts[nmIndex+1]) {
+              let moduleName = pathParts[nmIndex+1];
+              const moduleNameRegex = new RegExp(moduleName.replace(/[^a-zA-Z]/g, '.?'));
+              if (moduleName && !moduleNameRegex.test(fileName)) {
+                namePattern = moduleName + '-' + namePattern;
+              }
+            }
+            return namePattern + '.[ext]';
+          }
         },
       },
       {
