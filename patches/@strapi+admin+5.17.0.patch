@@ -1,8 +1,8 @@
 diff --git a/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js b/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
-index 709bba3..02e20e2 100644
+index c4ffe32..2d216fc 100644
 --- a/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
 +++ b/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
-@@ -9,7 +9,6 @@ var utils = require('@strapi/utils');
+@@ -8,7 +8,6 @@ var utils = require('@strapi/utils');
  var tsUtils = require('@strapi/typescript-utils');
  var projectSettings = require('../validation/project-settings.js');
  var index = require('../utils/index.js');
