@@ -81,13 +81,13 @@ index d55184f..c8ecee8 100644
  };
  
 diff --git a/node_modules/@strapi/core/dist/ee/license.js b/node_modules/@strapi/core/dist/ee/license.js
-index 4d86edd..71c4947 100644
+index 3068914..6e5eb44 100644
 --- a/node_modules/@strapi/core/dist/ee/license.js
 +++ b/node_modules/@strapi/core/dist/ee/license.js
-@@ -37,7 +37,14 @@ const DEFAULT_FEATURES = {
-         }
+@@ -38,7 +38,14 @@ const DEFAULT_FEATURES = {
      ]
  };
+ const LICENSE_REGISTRY_URI = 'https://license.strapi.io';
 -const publicKey = fs.readFileSync(path.resolve(__dirname, '../../resources/key.pub'));
 +let publicKey;
 +if (typeof __webpack_require__ === 'function') {

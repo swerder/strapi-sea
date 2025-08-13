@@ -1,5 +1,5 @@
 diff --git a/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js b/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
-index 2bc76c3..14ce491 100644
+index 709bba3..02e20e2 100644
 --- a/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
 +++ b/node_modules/@strapi/admin/dist/server/server/src/controllers/admin.js
 @@ -9,7 +9,6 @@ var utils = require('@strapi/utils');
