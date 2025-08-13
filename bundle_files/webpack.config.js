@@ -61,7 +61,7 @@ module.exports = {
   mode: 'production', //process.env.NODE_ENV, //'development', or 'production'
   target: 'node',
   externals: [...[
-    //prevent loading/packing unused DB dialects
+    //prevent loading/packing unused DB dialects (bases on .env: DATABASE_CLIENT / @strapi/database/dist/connection.js / knex/lib/dialects/index.js)
     'mysql',
     'mssql', 'tedious',
     'mysql2',
@@ -71,15 +71,16 @@ module.exports = {
     'mongoose',
     'monogodb',
     'pg', 'pg-hstore', 'pg-query-stream', 'pg-native',
-    //prevent loading other problem making modules that are never run/used (e.g. behind unused env vars)
+    //prevent loading/packing unused rateLimit stores (default is MemoryStore, see https://docs.strapi.io/cms/configurations/admin-panel#rate-limiting)
     'redis',
     'sequelize',
+    'mongoose',
+    //requested by 'grant' for other handlers, strapi only use koa
+    '@hapi/hapi/package.json', 'hapi/package.json',
+    //requested by different logging mechanism if process.env.DEBUG
     'request-logs',
-    '@hapi/hapi/package.json',
-    'hapi/package.json',
-    'plop',
-    'node-plop',
-    'prettier',
+    //no new type generation in sea context required
+    '@strapi/generators', //'plop', 'node-plop',
   ], ...additionalExternals],
   resolve: {
     alias: {
@@ -88,7 +89,10 @@ module.exports = {
       'knex/lib/raw': 'knex/lib/raw.js',
       'stream-json/jsonl/Parser': 'stream-json/jsonl/Parser.js',
       'stream-json/jsonl/Stringer': 'stream-json/jsonl/Stringer.js',
-      '@strapi/typescript-utils': path.resolve(referencePath, 'bundle_files/tsutil.mock.js')
+      //prevent loading 'typescript'
+      '@strapi/typescript-utils': path.resolve(referencePath, 'bundle_files/tsutil.mock.js'),
+      //prevent loading 'keyv' (and parent dependencies: 'package-json', 'cacheable-request') as it use dynamic imports but is unused (strapi update-notifier is deactivated)
+      'package-json': path.resolve(referencePath, 'bundle_files/generic.mock.js'),
     },
     //on normal strapi run commonJS is prefered so do this here also
     mainFields: ['main', 'module'],

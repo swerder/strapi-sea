@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.18.1
+
+- update node module patch files for Strapi 5.18.1
+- better categorize and document Webpack externals(=excludes)
+- add generic mock for unused dependencies that are still "loaded" (cannot mark as externals)
+
 ## 5.17.0
 
 - update node module patch files for Strapi 5.17.0
