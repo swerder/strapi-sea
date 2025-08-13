@@ -1,6 +1,6 @@
 {
   "name": "strapi-sea",
-  "version": "5.12.7",
+  "version": "5.13.1",
   "private": true,
   "description": "A Strapi application that can be packed as SEA",
   "license": "MIT",

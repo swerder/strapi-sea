@@ -25,6 +25,7 @@ export function updateEnvFile() {
     ADMIN_JWT_SECRET: 1,
     JWT_SECRET: 1,
     APP_KEYS: 4,
+    ENCRYPTION_KEY: 1,
   };
 
   let updated = false;
