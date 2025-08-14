@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.20.0
+
+- update node module patch files for Strapi 5.20.0
+
 ## 5.19.0
 
 - update node module patch files for Strapi 5.19.0
