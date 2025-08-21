@@ -1,4 +1,4 @@
-name: prepare release text and and diff patch
+name: prepare release text and add diff patch
 
 on:
   #release:

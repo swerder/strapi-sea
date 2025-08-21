@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.23.0
+
+- update node module patch files for Strapi 5.23.0
+- override version of tsx, esbuild, inquirer and koa to fix vulnerabilities
+
 ## 5.22.0
 
 - update node module patch files for Strapi 5.22.0
