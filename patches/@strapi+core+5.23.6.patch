@@ -512,7 +512,7 @@ index 889d09f..a39da61 100644
  };
  
 diff --git a/node_modules/@strapi/core/dist/loaders/plugins/index.js b/node_modules/@strapi/core/dist/loaders/plugins/index.js
-index 267df15..eda44f7 100644
+index c85957f..29381ba 100644
 --- a/node_modules/@strapi/core/dist/loaders/plugins/index.js
 +++ b/node_modules/@strapi/core/dist/loaders/plugins/index.js
 @@ -1,6 +1,9 @@
@@ -568,7 +568,7 @@ index 267df15..eda44f7 100644
          const enabledPlugin = enabledPlugins[pluginName];
          let serverEntrypointPath;
 @@ -120,10 +139,21 @@ async function loadPlugins(strapi1) {
-             throw new Error(`Error loading the plugin ${pluginName} because ${pluginName} is not installed. Please either install the plugin or remove it's configuration.`);
+             throw new Error(`Error loading the plugin ${pluginName} because ${pluginName} is not installed. Please either install the plugin or remove its configuration.`);
          }
          // only load plugins with a server entrypoint
 -        if (!await fse.pathExists(serverEntrypointPath)) {
