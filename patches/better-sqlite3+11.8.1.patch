@@ -1,3 +1,6 @@
+diff --git a/node_modules/better-sqlite3/build/Release/better_sqlite3.node b/node_modules/better-sqlite3/build/Release/better_sqlite3.node
+index 92c0b1a..1cf7b70 100755
+Binary files a/node_modules/better-sqlite3/build/Release/better_sqlite3.node and b/node_modules/better-sqlite3/build/Release/better_sqlite3.node differ
 diff --git a/node_modules/better-sqlite3/lib/database.js b/node_modules/better-sqlite3/lib/database.js
 index 14e0573..94dc98c 100644
 --- a/node_modules/better-sqlite3/lib/database.js
