@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.31.0
+
+- update node module patch files for Strapi 5.31.0
+- update version override of tsx and koa, add vite to fix vulnerabilities
+- 'file-type' module added in this version is ESM only but current webpack logic use CJS, direct resolve to js file as workaround
+
 ## 5.30.1
 
 - update node module patch files for Strapi 5.30.1

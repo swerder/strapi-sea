@@ -93,6 +93,7 @@ module.exports = {
       '@strapi/typescript-utils': path.resolve(referencePath, 'bundle_files/tsutil.mock.js'),
       //prevent loading 'keyv' (and parent dependencies: 'package-json', 'cacheable-request') as it use dynamic imports but is unused (strapi update-notifier is deactivated)
       'package-json': path.resolve(referencePath, 'bundle_files/generic.mock.js'),
+      'file-type': path.resolve(referencePath, 'node_modules/file-type/index.js'),
     },
     //on normal strapi run commonJS is prefered so do this here also
     mainFields: ['main', 'module'],
