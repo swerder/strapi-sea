@@ -81,7 +81,7 @@ index d55184f..c8ecee8 100644
  };
  
 diff --git a/node_modules/@strapi/core/dist/ee/license.js b/node_modules/@strapi/core/dist/ee/license.js
-index 3068914..6e5eb44 100644
+index 4b91de2..17f2a47 100644
 --- a/node_modules/@strapi/core/dist/ee/license.js
 +++ b/node_modules/@strapi/core/dist/ee/license.js
 @@ -38,7 +38,14 @@ const DEFAULT_FEATURES = {
@@ -99,7 +99,7 @@ index 3068914..6e5eb44 100644
 +}
  class LicenseCheckError extends Error {
      constructor(message, shouldFallback = false){
-         super(message);
+         super(message), this.shouldFallback = false;
 diff --git a/node_modules/@strapi/core/dist/loaders/apis.js b/node_modules/@strapi/core/dist/loaders/apis.js
 index b8fd4d5..5b4a183 100644
 --- a/node_modules/@strapi/core/dist/loaders/apis.js
