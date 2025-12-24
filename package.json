@@ -36,8 +36,8 @@
     "postinstall": "npx patch-package && tsx scripts/optional-patchese.ts"
   },
   "dependencies": {
-    "@strapi/plugin-users-permissions": "5.31.0",
-    "@strapi/strapi": "5.31.0",
+    "@strapi/plugin-users-permissions": "5.31.2",
+    "@strapi/strapi": "5.31.2",
     "better-sqlite3": "12.4.1",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
