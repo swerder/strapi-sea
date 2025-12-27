@@ -39,9 +39,9 @@ and choose "sqlite" db.
 
 The easiest way to prepare your project to use SEA is to apply the corresponding `strapi-sea-v<strapi version>.patch` to your workspace by download it from the [Release](https://github.com/swerder/strapi-sea/releases) page and call `git apply strapi-sea-vX.X.X.patch`:
 ```bash
-strapiVersion=$(npm list @strapi/strapi --depth=0 | grep @strapi/strapi | awk '{print $2}' | sed 's/@strapi\/strapi@//')
+strapiVersion=$(npm list @strapi/strapi --depth=0 | grep @strapi/strapi | sed 's/[+` -]\+//' | awk '{print $1}' | sed 's/@strapi\/strapi@//' | head -1)
 patchName="strapi-sea-v${strapiVersion}.patch"
-wget "https://github.com/zskarte/zskarte/archive/refs/tags/${patchName}"
+wget "https://github.com/swerder/strapi-sea/releases/download/v${strapiVersion}/${patchName}"
 git apply "${patchName}"
 ```
 
@@ -138,6 +138,12 @@ export DEBUG_PRINT_STRAPI_MODULE=1
 npm run start:sea
 ```
 
+### CommonJS vs ESModule
+
+The patches adjust the required files of strapi in the js (CommonJS) and mjs (ESModule) files so both variants would work.
+The webpack and sea configs check the type property in package.json to determine if it's module syntax or not.
+You have to set compilerOptions.module property in tsconfig.json correspondingly to "commonjs" or "es2022"/"esnext" based on the package.json settings.
+
 ## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:
@@ -151,7 +157,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🐛 Known issues
 
-For unused node_modules that pop up as missing errors in webpack build, I add them as "externals" in webpack config.
+For unused node_modules that pop up as missing errors in webpack build, I add them as "ignored" in webpack config.
 
 In the most cases I fix webpack warnings by implement a specific logic to load the required files.
 

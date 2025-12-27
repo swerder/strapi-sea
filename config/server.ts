@@ -1,10 +1,5 @@
-let isSea: boolean;
-try {
-  const sea = require('node:sea');
-  isSea = sea.isSea();
-} catch (ex) {
-  isSea = false;
-}
+import sea from 'node:sea';
+let isSea = sea.isSea();
 
 export default ({ env }) => ({
   host: env('HOST', '0.0.0.0'),

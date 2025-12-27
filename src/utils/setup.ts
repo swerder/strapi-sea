@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Core } from '@strapi/strapi';
 import type { UID } from '@strapi/types';
+import { program_dir } from './envManager.js';
 
 interface SeedLinkRef {
   type: UID.ContentType;
@@ -42,7 +43,7 @@ export async function importConfigSync() {
 
 export async function importSeedConfigFile(strapi: Core.Strapi) {
   try {
-    const configPath = path.join(__dirname, 'seed-config.json');
+    const configPath = path.join(program_dir, 'seed-config.json');
     if (fs.existsSync(configPath)) {
       const config: SeedConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 

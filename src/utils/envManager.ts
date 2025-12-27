@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import dotenv from "dotenv";
+export const program_dir = path.dirname(process.execPath);
 
 function generateRandomToken(length = 32) {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -12,7 +13,7 @@ function generateRandomToken(length = 32) {
 }
 
 export function updateEnvFile() {
-  const envPath = path.join(__dirname, ".env");
+  const envPath = path.join(program_dir, ".env");
   let envContent = "";
 
   if (fs.existsSync(envPath)) {
@@ -53,5 +54,5 @@ export function updateEnvFile() {
 }
 
 export function loadEnvFile() {
-  dotenv.config({ path: path.join(__dirname, ".env") });
+  dotenv.config({ path: path.join(program_dir, ".env") });
 }
