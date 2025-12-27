@@ -22,3 +22,25 @@ index 9b8cd6f..17b544d 100644
  }
  
  module.exports = importDefault;
+diff --git a/node_modules/@strapi/utils/dist/import-default.mjs b/node_modules/@strapi/utils/dist/import-default.mjs
+index 7bb7b71..c2c1b43 100644
+--- a/node_modules/@strapi/utils/dist/import-default.mjs
++++ b/node_modules/@strapi/utils/dist/import-default.mjs
+@@ -1,6 +1,14 @@
+-/* eslint-disable @typescript-eslint/no-var-requires */ function importDefault(modName) {
+-    const mod = require(modName);
+-    return mod && mod.__esModule ? mod.default : mod;
++/* eslint-disable @typescript-eslint/no-var-requires */ function importDefault(modName, req) {
++    if (typeof __webpack_require__ === 'function') {
++        if (!modName.startsWith('./')){
++            modName = `./${modName}`;
++        }
++        const mod = req(modName);
++        return mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod;
++    } else {
++        const mod = require(modName);
++        return mod && mod.__esModule ? mod.default : mod;
++    }
+ }
+ 
+ export { importDefault as default };

@@ -37,12 +37,12 @@ and choose "sqlite" db.
 #### 1. Prepare your project
 **Attention:** you should first commit / stash all you changed files so you can verify the SEA specific changes after apply them.
 
-The easiest way to prepare your project to use SEA is to apply the corresponding `strapi-sea-v<strapi version>.patch` to your workspace by download it from the [Release](https://github.com/swerder/strapi-sea/releases) page and call `git apply strapi-sea-vX.X.X.patch`:
+The easiest way to prepare your project to use SEA is to apply the corresponding `strapi-sea-v<strapi version>.patch` to your workspace by download it from the [Release](https://github.com/swerder/strapi-sea/releases) page and call `git apply --reject strapi-sea-vX.X.X.patch` (--reject create .rej files for all not applyable chunks):
 ```bash
-strapiVersion=$(npm list @strapi/strapi --depth=0 | grep @strapi/strapi | awk '{print $2}' | sed 's/@strapi\/strapi@//')
+strapiVersion=$(npm list @strapi/strapi --depth=0 | grep @strapi/strapi | sed 's/^.*@\([0-9.]\+\).*$/\1/' | head -1)
 patchName="strapi-sea-v${strapiVersion}.patch"
-wget "https://github.com/zskarte/zskarte/archive/refs/tags/${patchName}"
-git apply "${patchName}"
+wget "https://github.com/swerder/strapi-sea/releases/download/v${strapiVersion}/${patchName}"
+git apply --reject "${patchName}"
 ```
 
 Install the new added packages
@@ -65,7 +65,7 @@ npm install --save-dev node-loader null-loader tsx webpack webpack-cli
 In the `package.json` you can define the configs:
 - `executableName`: the name that the executable and zip will have.
 
-If you want to use a different db system then sqlite for the SEA application you have to comment the corresponding lines in `bundle_files/webpack.config.js`, adjust `bundle_files/.env.exec.example` with the needed informations and install all required npm modules.
+If you want to use a different db system then sqlite for the SEA application you have to comment the corresponding lines in `bundle_files/webpack.config.mjs`, adjust `bundle_files/.env.exec.example` with the needed informations and install all required npm modules.
 
 
 #### 3. Create your Strapi application
@@ -138,6 +138,12 @@ export DEBUG_PRINT_STRAPI_MODULE=1
 npm run start:sea
 ```
 
+### CommonJS vs ESModule
+
+The patches adjust the required files of strapi in the js (CommonJS) and mjs (ESModule) files so both variants would work.
+The webpack and sea configs check the type property in package.json to determine if it's module syntax or not.
+You have to set compilerOptions.module property in tsconfig.json correspondingly to "commonjs" or "es2022"/"esnext" based on the package.json settings.
+
 ## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:
@@ -151,7 +157,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🐛 Known issues
 
-For unused node_modules that pop up as missing errors in webpack build, I add them as "externals" in webpack config.
+For unused node_modules that pop up as missing errors in webpack build, I add them as "ignored" in webpack config.
 
 In the most cases I fix webpack warnings by implement a specific logic to load the required files.
 

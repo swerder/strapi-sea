@@ -22,18 +22,19 @@
     "upgrade:dry": "npx @strapi/upgrade latest --dry",
     "export:user-role": "config-sync export --yes --type user-role",
     "prebuild:webpack": "npm run prepare-bundle",
-    "build:webpack": "npx webpack --config bundle_files/webpack.config.js",
+    "build:webpack": "npx webpack --config bundle_files/webpack.config.mjs",
     "prebuild:sea": "npm run prepare-bundle exec",
-    "build:sea": "node --experimental-sea-config bundle_files/sea-config.json && npm run inject-sea",
+    "build:sea": "npm run bundle-sea && npm run inject-sea",
     "postbuild:sea": "npm run zip-release",
     "build:all": "npm run build && npm run build:webpack && npm run build:sea",
     "start:webpack": "cd bundled/ && ./startWebpack.sh",
     "start:sea": "cd exec/ && ./startServer.sh",
     "setup:sea": "cd exec/ && ./startServer.sh --setup",
     "prepare-bundle": "tsx scripts/prepare-bundle-files.ts",
+    "bundle-sea": "tsx scripts/bundle-sea.ts",
     "inject-sea": "tsx scripts/inject-sea.ts",
     "zip-release": "tsx scripts/zip-release.ts",
-    "postinstall": "npx patch-package && tsx scripts/optional-patchese.ts"
+    "postinstall": "npx patch-package && tsx scripts/optional-patches.ts"
   },
   "dependencies": {
     "@strapi/plugin-users-permissions": "5.33.0",

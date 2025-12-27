@@ -6,16 +6,15 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { createStrapi, type Core } from "@strapi/strapi";
-import { loadEnvFile, updateEnvFile } from "./utils/envManager";
-import { importConfigSync, importSeedConfigFile } from "./utils/setup";
-import lifecycles from "./index";
+import { loadEnvFile, updateEnvFile, program_dir } from "./utils/envManager.js";
+import { importConfigSync, importSeedConfigFile } from "./utils/setup.js";
+import lifecycles from "./index.js";
 
 //create missing secrets
 updateEnvFile();
 
 loadEnvFile();
-
-const uploadDir = path.join(__dirname, "public", "uploads");
+const uploadDir = path.join(program_dir, "public", "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   console.log("uploadDir created");
@@ -85,7 +84,7 @@ no params  : start the application.
   process.exit(0);
 }
 
-async function main() {
+(async () => {
   const strapi = await createStrapi().load();
   if (process.argv.includes("--help") || process.argv.includes("-h")) {
     help(strapi);
@@ -94,6 +93,4 @@ async function main() {
   } else {
     await startServer(strapi);
   }
-}
-
-main();
+})();

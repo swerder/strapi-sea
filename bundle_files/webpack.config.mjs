@@ -1,23 +1,28 @@
-const path = require('node:path');
-const fs = require('node:fs');
-const webpack = require('webpack');
-//const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+import path from 'node:path';
+import fs from 'node:fs';
+import webpack from 'webpack';
+//import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 
 const referencePath = process.cwd();
 
 const distSrcDir = 'dist/src';
 //make sure dirs exist
 //require.context from webpack will throw an error if folder does not exist
-for (const dirName of ['middlewares', 'api', 'components', 'extensions','migrations', '../../config/sync']) {
+for (const dirName of ['middlewares', 'api', 'components', 'extensions', '../../config/sync']) {
   const dir = path.resolve(referencePath, distSrcDir, dirName);
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir);
+    fs.mkdirSync(dir, { recursive: true });
   }
 }
+const dir = path.resolve(referencePath, "database/migrations");
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir, { recursive: true });
+}
+
 
 //check for modules bufferutil / utf-8-validate and if exist prevent to copy not needed node files to output by delete them from prebuilds
-let additionalExternals = [];
-let additionalPlugins = [];
+const additionalIgnored = [];
+const additionalPlugins = [];
 const removeUnmatchingPrebuilds = (moduleName, addPluginOnError) => {
   try {
     const bufferutilRoot = path.dirname(require.resolve(`${moduleName}/package.json`));
@@ -36,7 +41,7 @@ const removeUnmatchingPrebuilds = (moduleName, addPluginOnError) => {
       additionalPlugins.push(addPluginOnError);
     } else {
       console.log(`${moduleName} for clean prebuilds not found, add the module to "externals"`);
-      additionalExternals.push(moduleName);
+      additionalIgnored.push(moduleName);
     }
   }
 }
@@ -50,17 +55,8 @@ removeUnmatchingPrebuilds('utf-8-validate',
     'process.env.WS_NO_UTF_8_VALIDATE': JSON.stringify('1'), // set this value fixed for webpack, so the module loading in ws/lib/validation.js is not triggered
   }),
 );
-
-module.exports = {
-  entry: './dist/src/server.js',
-  output: {
-    filename: 'index.js',
-    path: path.resolve(referencePath, 'bundled'),
-    libraryTarget: 'commonjs2',
-  },
-  mode: 'production', //process.env.NODE_ENV, //'development', or 'production'
-  target: 'node',
-  externals: [...[
+//this modules are marked as external so they are NOT bundled, doing this as they are imported but not used by codeflow and only increase bundle size.
+const ignoredModules = [
     //prevent loading/packing unused DB dialects (bases on .env: DATABASE_CLIENT / @strapi/database/dist/connection.js / knex/lib/dialects/index.js)
     'mysql',
     'mssql', 'tedious',
@@ -81,7 +77,17 @@ module.exports = {
     'request-logs',
     //no new type generation in sea context required
     '@strapi/generators', //'plop', 'node-plop',
-  ], ...additionalExternals],
+];
+const configs = {
+  entry: './dist/src/server.js',
+  mode: 'production', //process.env.NODE_ENV, //'development', or 'production'
+  target: 'node',
+  optimization: {
+    minimize: false,
+    splitChunks: false,
+    runtimeChunk: false,
+    concatenateModules: true,
+  },
   resolve: {
     alias: {
       'lodash/fp': 'lodash/fp.js',
@@ -89,18 +95,19 @@ module.exports = {
       'knex/lib/raw': 'knex/lib/raw.js',
       'stream-json/jsonl/Parser': 'stream-json/jsonl/Parser.js',
       'stream-json/jsonl/Stringer': 'stream-json/jsonl/Stringer.js',
-      //prevent loading 'typescript'
-      '@strapi/typescript-utils': path.resolve(referencePath, 'bundle_files/tsutil.mock.js'),
       //prevent loading 'keyv' (and parent dependencies: 'package-json', 'cacheable-request') as it use dynamic imports but is unused (strapi update-notifier is deactivated)
       'package-json': path.resolve(referencePath, 'bundle_files/generic.mock.js'),
-      'file-type': path.resolve(referencePath, 'node_modules/file-type/index.js'),
     },
-    //on normal strapi run commonJS is prefered so do this here also
-    mainFields: ['main', 'module'],
   },
   plugins: [...[
     //to show size and files that are part of the bundle activate the following line
     //new BundleAnalyzerPlugin(),
+    new webpack.IgnorePlugin({
+      resourceRegExp: RegExp('^(' + ignoredModules.join('|') + additionalIgnored.join('|') + ')$'),
+    }),
+    new webpack.optimize.LimitChunkCountPlugin({
+      maxChunks: 1,
+    }),
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
     }),
@@ -110,7 +117,7 @@ module.exports = {
     new webpack.ContextReplacementPlugin(/^api$/, path.resolve(referencePath, distSrcDir, 'api')),
     new webpack.ContextReplacementPlugin(/^components$/, path.resolve(referencePath, distSrcDir, 'components')),
     new webpack.ContextReplacementPlugin(/^extensions$/, path.resolve(referencePath, distSrcDir, 'extensions')),
-    new webpack.ContextReplacementPlugin(/^migrations$/, path.resolve(referencePath, distSrcDir, 'migrations')),
+    new webpack.ContextReplacementPlugin(/^migrations$/, path.resolve(referencePath, 'database/migrations')),
     new webpack.ContextReplacementPlugin(/^@strapi$/, path.resolve(referencePath, 'node_modules/@strapi')),
     new webpack.ContextReplacementPlugin(/^node_modules$/, path.resolve(referencePath, 'node_modules')),
     new webpack.ContextReplacementPlugin(/^node_modules_strapi_plugin_package$/, (context) => {
@@ -137,16 +144,20 @@ module.exports = {
     }),
     new webpack.ContextReplacementPlugin(/^sqlite3_node_dir$/, path.resolve(referencePath, 'node_modules/better-sqlite3/build/Release')),
     new webpack.ContextReplacementPlugin(/^config\/sync$/, path.resolve(referencePath, 'config/sync')),
-    new webpack.ContextReplacementPlugin(/^admin_web$/, path.resolve(referencePath, 'dist/build')),
+    //new webpack.ContextReplacementPlugin(/^admin_web$/, path.resolve(referencePath, 'dist/build')),
+    new webpack.ContextReplacementPlugin(/^admin_web$/, (context) => {
+      Object.assign(context, {
+        //include all admin files but exclude unused ~11mb EE feature Purchase*
+        regExp: /\/(?![pP]urchase).*\.(html|css|js)$/,
+        //also exclude unused language files (adjust list and remove the used ones, based on src/admin/app.tsx locales)
+        //regExp: /\/(?![pP]urchase|(ar|ca|cs|de|dk|es|en|eu|fr|gu|he|hi|hu|id|it|ja|ko|ml|ms|nl|no|pl|pt|ru|sa|sk|sv|th|tr|uk|vi|zh)[.-]).*\.(html|css|js)$/,
+        request: path.resolve(referencePath, 'dist/build'),
+      });
+    }),
     new webpack.ContextReplacementPlugin(/^favicon$/, referencePath),
     new webpack.ContextReplacementPlugin(/^sharp_node_fallback_dir$/, referencePath),
     new webpack.ContextReplacementPlugin(/^node_modules_@img_versions$/, path.resolve(referencePath, 'node_modules/@img')),
   ], ...additionalPlugins],
-  optimization: {
-    minimize: false,
-    splitChunks: false,
-    runtimeChunk: false,
-  },
   module: {
     rules: [
       {
@@ -204,3 +215,56 @@ module.exports = {
     ],
   },
 };
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+const packageJsonPath = join(process.cwd(), 'package.json');
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+const moduleType = packageJson.type; // "module" or "commonjs" or undefined
+
+let activeConfig;
+if (moduleType === "module") {
+  //ESModule
+  activeConfig = {...configs,
+    experiments: {
+      outputModule: true,
+      topLevelAwait: true,
+    },
+    output: {
+      module: true,
+      environment: { module: true },
+      filename: 'index.mjs',
+      path: path.resolve(referencePath, 'bundled'),
+      publicPath: '',
+      library: { type: 'module' }
+    },
+  }
+  //try first to load ESModules before CommonJS
+  activeConfig.resolve.mainFields = ['module', 'main'];
+  //prevent loading 'typescript'
+  activeConfig.resolve.alias['@strapi/typescript-utils'] = path.resolve(referencePath, 'bundle_files/tsutil.mock.mjs');
+  activeConfig.module.parser = {
+    javascript: {
+      importMeta: true,          // evaluate import.meta
+      importMetaContext: true,   // allow import.meta.webpackContext
+    },
+  };
+} else {
+  //CommonJS
+  activeConfig = {...configs,
+    output: {
+      filename: 'index.js',
+      path: path.resolve(referencePath, 'bundled'),
+      libraryTarget: 'commonjs2',
+    }
+  };
+  //on normal strapi run CommonJS is prefered so do this here also
+  activeConfig.resolve.mainFields = ['main', 'module'];
+  //prevent loading 'typescript'
+  activeConfig.resolve.alias['@strapi/typescript-utils'] = path.resolve(referencePath, 'bundle_files/tsutil.mock.cjs');
+  //file-type is ESM only, "fix" by direct use js file (and not checking exports from package.json)
+  activeConfig.resolve.alias['file-type'] =  path.resolve(referencePath, 'node_modules/file-type/index.js');
+}
+
+export default activeConfig;

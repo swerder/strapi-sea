@@ -3,6 +3,8 @@
 ## 5.33.0
 
 - update node module patch files for Strapi 5.33.0
+- update patches to also apply them on mjs files (and fix different strapi import errors)
+- fix some readme errors
 
 ## 5.32.0
 
