@@ -1244,31 +1244,40 @@ index 70f4666..4f47c89 100644
  const formatContentTypes = (pluginName, contentTypes)=>{
      Object.values(contentTypes).forEach((definition)=>{
 diff --git a/node_modules/@strapi/core/dist/middlewares/favicon.js b/node_modules/@strapi/core/dist/middlewares/favicon.js
-index 3ba2f2e..0201d90 100644
+index 08493af..07688d6 100644
 --- a/node_modules/@strapi/core/dist/middlewares/favicon.js
 +++ b/node_modules/@strapi/core/dist/middlewares/favicon.js
-@@ -20,8 +20,17 @@ const favicon = (config, { strapi })=>{
-    *
-    *  This check ensures backwards compatibility until
-    *  the next major version
--   */ if (!fs.existsSync(path.resolve(appRoot, faviconPath))) {
--        faviconPath = 'favicon.ico';
-+   */
+@@ -15,11 +15,23 @@ const favicon = (config, { strapi })=>{
+     };
+     const { root: appRoot } = strapi.dirs.app;
+     let faviconPath = faviconPathConfig;
+-    if (!fs.existsSync(path.resolve(appRoot, faviconPathConfig))) {
+-        if (fs.existsSync(path.resolve(appRoot, defaults.path))) {
+-            faviconPath = defaults.path;
+-        } else if (fs.existsSync(path.resolve(appRoot, 'favicon.ico'))) {
+-            faviconPath = 'favicon.ico';
 +    if (typeof __webpack_require__ === "function") {
 +        const req = require.context("favicon", false, /favicon\.(ico|png)$/);
 +        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'favicon'", req.id, req.keys());
-+        if (!req.keys().includes(`./${path.basename(faviconPath)}`)){
-+            faviconPath = "favicon.ico";
++        if (!req.keys().includes(`./${path.basename(faviconPathConfig)}`)){
++            if (req.keys().includes(`./${path.basename(defaults.path)}`)){
++                faviconPath = path.basename(defaults.path)
++            } else if (req.keys().includes(`./favicon.ico`)){
++                faviconPath = "favicon.ico";
++            }
 +        }
 +    } else {
-+        if (!fs.existsSync(path.resolve(appRoot, faviconPath))) {
-+            faviconPath = 'favicon.ico';
-+        }
++      if (!fs.existsSync(path.resolve(appRoot, faviconPathConfig))) {
++            if (fs.existsSync(path.resolve(appRoot, defaults.path))) {
++                faviconPath = defaults.path;
++            } else if (fs.existsSync(path.resolve(appRoot, 'favicon.ico'))) {
++                faviconPath = 'favicon.ico';
++            }
+         }
      }
      return koaFavicon(path.resolve(appRoot, faviconPath), {
-         maxAge
 diff --git a/node_modules/@strapi/core/dist/middlewares/favicon.mjs b/node_modules/@strapi/core/dist/middlewares/favicon.mjs
-index 3814fa9..a39150b 100644
+index 5039986..f224159 100644
 --- a/node_modules/@strapi/core/dist/middlewares/favicon.mjs
 +++ b/node_modules/@strapi/core/dist/middlewares/favicon.mjs
 @@ -1,5 +1,5 @@
@@ -1278,29 +1287,38 @@ index 3814fa9..a39150b 100644
  import koaFavicon from 'koa-favicon';
  
  const defaults = {
-@@ -18,8 +18,20 @@ const favicon = (config, { strapi })=>{
-    *
-    *  This check ensures backwards compatibility until
-    *  the next major version
--   */ if (!existsSync(resolve(appRoot, faviconPath))) {
--        faviconPath = 'favicon.ico';
-+    */
+@@ -13,11 +13,26 @@ const favicon = (config, { strapi })=>{
+     };
+     const { root: appRoot } = strapi.dirs.app;
+     let faviconPath = faviconPathConfig;
+-    if (!existsSync(resolve(appRoot, faviconPathConfig))) {
+-        if (existsSync(resolve(appRoot, defaults.path))) {
+-            faviconPath = defaults.path;
+-        } else if (existsSync(resolve(appRoot, 'favicon.ico'))) {
+-            faviconPath = 'favicon.ico';
 +    if (typeof __webpack_require__ === "function") {
 +        const req = import.meta.webpackContext("favicon", {
 +            recursive: false,
 +            regExp: /favicon\.(ico|png)$/,
 +        });
 +        process.env.DEBUG_PRINT_WEBPACK_CONTEXT && console.log("DEBUG: webpack context 'favicon'", req.id, req.keys());
-+        if (!req.keys().includes(`./${basename(faviconPath)}`)){
-+            faviconPath = "favicon.ico";
++        if (!req.keys().includes(`./${basename(faviconPathConfig)}`)){
++            if (req.keys().includes(`./${basename(defaults.path)}`)){
++                faviconPath = basename(defaults.path)
++            } else if (req.keys().includes(`./favicon.ico`)){
++                faviconPath = "favicon.ico";
++            }
 +        }
 +    } else {
-+        if (!existsSync(resolve(appRoot, faviconPath))) {
-+            faviconPath = 'favicon.ico';
-+        }
++        if (!existsSync(resolve(appRoot, faviconPathConfig))) {
++            if (existsSync(resolve(appRoot, defaults.path))) {
++                faviconPath = defaults.path;
++            } else if (existsSync(resolve(appRoot, 'favicon.ico'))) {
++                faviconPath = 'favicon.ico';
++            }
+         }
      }
      return koaFavicon(resolve(appRoot, faviconPath), {
-         maxAge
 diff --git a/node_modules/@strapi/core/dist/providers/admin.mjs b/node_modules/@strapi/core/dist/providers/admin.mjs
 index 6605196..161b858 100644
 --- a/node_modules/@strapi/core/dist/providers/admin.mjs
